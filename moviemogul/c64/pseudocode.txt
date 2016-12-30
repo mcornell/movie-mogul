@@ -1,0 +1,193 @@
+main() {
+	if lf < 3  { // lf logical file on disk?
+		displayTitleScreen() // 61000
+	}
+	clear screen	// 100
+	// Create some arrays: DIM Statements $ = string % = int, none = fp 
+	ac$(140) // String size = 140
+	an%(140, 8) // Int size = [140, 8]
+	mo$(12) // MOVIE TITLES
+	mn$(12, 6) 
+	mn%(12,3,8) // REALLY 3 Dimensions?
+	ad(8)  
+	tw(8)  
+	tr(8) 
+	dimpy(12) // typo? py name? fp size = 12
+	hl%(12,2) // Tuple of integers related to movies
+	fg$(4,5)
+	jj$(4,5)
+	kk$(4,5)
+	s(12) // Y 12?
+	// create some regular variables. Again $ = String
+	a=3
+	ml$=",000"
+	sp$="                                       "
+	dn$=""
+	df$=""
+	dg$=""
+	if (ad=0) {
+		populateMovieData(); // 60000
+	} // ad = 1, so don't do that again :)
+	// Excess code to setup s(1)-s(3) why is s.length == 12?
+	s(1) = Random Number between 1-12
+	s(2) = Random Number between 1-12 != s(1)
+	s(3) = Random Number between 1-12 != s(1) || s(2)
+	for (i = 1 to 3) {
+		// Use values from s array (looping with i)
+		// To print out the description of the movie
+		// From the mn$ array: mn$(s(i), 1-6)
+	}
+	// "You have been sent three scripts."
+	// "Which do you want to produce(1-3)?";
+	// Get user input -- line 610
+	// z = selection. It must be between 1-3 or no good.
+	// z then overwritten with the value from s(z).
+	// z now == script index -- line 635
+	// Apparently new variable 
+	mv$ = mn$(z,1) // Movie Name
+	for (i=2 to 6) {
+		mv$(i) = mn$(z, i) // How does that work? now mv is an array? 
+	}
+	// Apparently mv$ = selected movie
+	for (i=1 to 3) {
+		for (j =1 to 8) {
+			mv(i,j) = mn%(z, i, j) // mv fp array? also new
+			//mv(i,j) = each role (i) and attributes (j) for the movie z
+		}
+	}
+	//for loop to set i to the index of the movie. BREAK with GOTO 680 :)
+	ll & hh = values from hl% using movie index. limits?
+	
+	// DISPLAY CASTING CALL SCREEN FOR MOVIE
+	
+	clear s array // may we find out why it is length 12?
+	// S is the actors to choose from
+	// the random integer determines between 4-10 men and 2-8 women that are picked.
+	// There are apparently 76 men in the list.
+	
+	// 880
+	// Check out http://www.c64-wiki.com/index.php/RND for why these numbers are NOT really random
+	xm% = random integer between 4 and 10
+	// Add s(1 to mx%) with random numbers between 1-76. Can not be equal to anything already in array.
+	for (k = 1 to xm%) { // 4 to 10 loops 
+		x = random integer between 1 and 76 // line 900
+		for (pp = 1 to xm%) { // also 4 to 10 loops 
+			if (x == s(pp)) {
+			  	// break out of for loop since it's already in s array
+			}
+		}
+		s(k) = x 
+	}
+	// end random loopy thingy
+	
+	for (k=xm% + 1 to 12) { fill out remainder of array
+		x = random number from 63 to 140 // line 98a0
+		for (p= xm% +1 to 12) {
+			if (x == s(pp)) {
+			  	// break out of for loop since it's already in the 2nd half of s array
+			}
+		}
+		s(k) = x
+	}
+	
+	
+	// Line 1220 begin to print out the stuff to choose the actors.
+	for (i = 1 to 12) {
+		print "${actor name} ${findPay(i)}"
+	}
+	
+	// Take casting input store in sa
+	// store actor data in an%(aa, 1)
+        
+        // wierd stuff at 1300 later
+	
+	
+	
+}
+
+findPay(index) { // 3780
+	x = random number between 31 and 331 // double check logic
+	// See (an% array below)
+	py(i) = int( actorArray[2]/2 + actorArray[3]) * x
+	if (py(i) < 100) {
+		py(i) += 100
+	}
+	cm$ = str(py(i))
+	
+}
+
+convertPayToString(pay) { // 22000 pay == cm$
+// MID$ with 1 param same as RIGHT$ 
+// http://www.c64-wiki.com/index.php/MID$
+	cm$ = cm$ - Strip first 2 character
+	if (len(cm$) > 3) {
+		cm$ = "${cm[0..2]},${cm[3]}"
+	}
+}
+
+populateMovieData() { // 60000
+	for (i = 1 to 12) {
+		// load the movie titles to the mo$ array
+	}
+	for (i = 1 to 12) {
+		for (j = 1 to 2) {
+			// take two next two items from data block and store as pairs
+			// from 60090-61000
+		}
+	}
+	//load movie data file:
+	for (j=1 to 12) {
+		// Take movie names from mo$ array and stuff
+		// into first dimension of mn$ array 
+		for (l=2 to 6) {
+		// Movie Description (2-3)
+		// Cast (4-6) loaded for each movie
+		// array dimesion 2-6 of mn$[j,l]
+			for (g=1 to 3) {
+				for (h=1 to 8) {
+					//$mn%[j,g,h]
+					//Appears to be adding data for each character's needs
+					// for casting
+					// Example:
+					// [5,2,7,9,7,7,1,9], [9,2,5,7,7,6,1,6], [5,4,6,8,5,8,1,7]
+					// Data Structure:
+					// 0: Gender of Role 1= Male, 5 = Male or Female, 9 = Female
+					// 1: Fairly certain this is ignored
+					// 2: Actor "skill"? Used for Awards
+					// 3: Actor "skill"? Used for initial movie release?
+				}
+			}
+		}
+	}
+	//load actor data file:
+	for (j=1 to 140) { //!!! 140?
+		// load Actor Name to ac$ array
+		for (l=1 to 8) {
+			// load Actor data to an% array 
+			// Similar to mn array, keyed with j, l
+			// [1,2,7,9,7,7,1,9]
+			// Data Structure:
+			// 0: Gender - 1 = Male, 9 = Female
+			// 2: Pay minimum seed
+			// 3: Pay additive
+			
+			}
+		}
+	}
+	ad = 1
+}
+
+
+displayTitleScreen() { // 61000
+	if (lf == 0) {
+		lf = 1;
+		load "unpacker"
+	}
+	if (lf == 1) {
+		lf = 2;
+		load "mm.title"
+	}
+	// Assorted Memory Pokes to display the title screen?
+	//61040-61070
+	goto 100 // actually just a return to main after displaying title
+}
