@@ -1,9 +1,13 @@
 package net.mcornell.moviemogul.domain;
 
+import java.util.Set;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.OneToMany;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,26 +23,19 @@ public class Film {
 	private Short budgetMinimum;
 	private Short budgetIdeal;
 	private String description;
-	@OneToOne
-	private Role roleOne;
-	@OneToOne
-	private Role roleTwo;
-	@OneToOne
-	private Role roleThree;
+
+	// Changing to a Set of Roles
+	@OneToMany
+	@JoinTable(name = "FILM_ROLES", joinColumns = @JoinColumn(name = "FILM_ID", referencedColumnName = "ID"), inverseJoinColumns = @JoinColumn(name = "ROLE_ID", referencedColumnName = "ID"))
+	private Set<Role> roles;
+	// @OneToOne
+	// private Role roleOne;
+	// @OneToOne
+	// private Role roleTwo;
+	// @OneToOne
+	// private Role roleThree;
 
 	private Film() {
 	}
-
-	// public Film(String name, Short budgetMinimum, Short budgetIdeal, String
-	// description, Role roleOne, Role roleTwo, Role roleThree) {
-	// this.name = name;
-	// this.budgetMinimum = budgetMinimum;
-	// this.budgetIdeal = budgetIdeal;
-	// this.description = description;
-	// this.roleOne = roleOne;
-	// this.roleTwo = roleTwo;
-	// this.roleThree = roleThree;
-	//
-	// }
 
 }
