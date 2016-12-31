@@ -5,13 +5,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    properties.hibernate.default_schema: public
+  datasource:
+    platform: h2
+
 logging:
   level:
     org.flywaydb: debug
+    
     org.springframework.orm.jpa: debug
+    org.springframework.jdbc: debug
     org.springframework.data.jpa: debug
-    org.hibernate: debug
+    org.springframework.data.rest: debug
+    #org.hibernate: trace
+    
     
   #jpa:
     #generate-ddl: false
