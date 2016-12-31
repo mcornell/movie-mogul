@@ -24,16 +24,9 @@ public class Film {
 	private Short budgetIdeal;
 	private String description;
 
-	// Changing to a Set of Roles
 	@OneToMany
 	@JoinTable(name = "FILM_ROLES", joinColumns = @JoinColumn(name = "FILM_ID", referencedColumnName = "ID"), inverseJoinColumns = @JoinColumn(name = "ROLE_ID", referencedColumnName = "ID"))
 	private Set<Role> roles;
-	// @OneToOne
-	// private Role roleOne;
-	// @OneToOne
-	// private Role roleTwo;
-	// @OneToOne
-	// private Role roleThree;
 
 	private Film() {
 	}
