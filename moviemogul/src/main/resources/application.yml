@@ -4,7 +4,15 @@ spring:
       base-path: /api
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate 
+# To generate DDL  
+#    generate-ddl: true
+#    hibernate:
+#      ddl-auto: create-drop
+#    properties.javax.persistence.schema-generation.create-source: metadata
+#    properties.javax.persistence.schema-generation.scripts.action: create
+#    properties.javax.persistence.schema-generation.scripts.create-target: create.sql
+      
   datasource:
     platform: h2
 
@@ -16,11 +24,5 @@ logging:
     org.springframework.jdbc: debug
     org.springframework.data.jpa: debug
     org.springframework.data.rest: debug
-    #org.hibernate: trace
-    
-    
-  #jpa:
-    #generate-ddl: false
-    #properties.javax.persistence.schema-generation.create-source: metadata
-    #properties.javax.persistence.schema-generation.scripts.action: create
-    #properties.javax.persistence.schema-generation.scripts.create-target: create.sql
+    #org.hibernate: trace    
+  
