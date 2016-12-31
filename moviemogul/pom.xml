@@ -49,7 +49,7 @@
 			<artifactId>spring-data-rest-hal-browser</artifactId>
 		</dependency>
 
- 
+
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
@@ -85,7 +85,84 @@
 					<excludeDevtools>true</excludeDevtools>
 				</configuration>
 			</plugin>
+
+			<!-- Frontend build (keeping as one project for now, not multiple) -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>exec-npm-install</id>
+						<phase>generate-sources</phase>
+						<configuration>
+							<!-- <workingDirectory>${project.basedir}/src/main/js</workingDirectory> -->
+							<executable>npm</executable>
+							<arguments>
+								<argument>install</argument>
+							</arguments>
+						</configuration>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+					</execution>
+					<!-- React -->
+					<execution>
+						<id>exec-npm-webpack</id>
+						<phase>generate-sources</phase>
+						<configuration>
+							<!-- <workingDirectory>${project.basedir}/src/main/js</workingDirectory> -->
+							<executable>webpack</executable>
+						</configuration>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+					</execution>
+					<!-- Angular 2 -->
+					<!-- <execution> <id>exec-npm-run-tsc</id> <phase>generate-sources</phase> 
+						<configuration> <workingDirectory>${project.basedir}/src/main/js</workingDirectory> 
+						<executable>npm</executable> <arguments> <argument>run</argument> <argument>tsc</argument> 
+						</arguments> </configuration> <goals> <goal>exec</goal> </goals> </execution> -->
+				</executions>
+			</plugin>
+
 		</plugins>
+
+		<pluginManagement>
+			<plugins>
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											org.codehaus.mojo
+										</groupId>
+										<artifactId>
+											exec-maven-plugin
+										</artifactId>
+										<versionRange>
+											[1.5.0,)
+										</versionRange>
+										<goals>
+											<goal>exec</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute></execute>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 
