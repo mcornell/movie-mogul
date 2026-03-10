@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
 
 export default defineConfig({
   // Vite configuration options go here
@@ -6,6 +6,6 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    outDir: 'dist',
+    outDir: "dist",
   },
 });

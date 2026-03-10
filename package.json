@@ -1,1 +1,15 @@
-{\n  "name": "movie-mogul",\n  "version": "0.1.0",\n  "private": true,\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build",\n    "test": "vitest"\n  },\n  "devDependencies": {\n    "vite": "^4.0.0",\n    "typescript": "^5.0.0",\n    "vitest": "^0.23.0"\n  }\n}
+{
+    "name": "movie-mogul",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "test": "vitest"
+    },
+    "devDependencies": {
+        "vite": "^4.0.0",
+        "typescript": "^5.0.0",
+        "vitest": "^0.23.0"
+    }
+}
