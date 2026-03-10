@@ -16,8 +16,8 @@
     --cursor:    #ffb000;
     --scanline:  rgba(0, 0, 0, 0.15);
     --font:      'VT323', 'Courier New', monospace;
-    --font-size: 20px;
-    --line-height: 1.4;
+    --font-size: 26px;
+    --line-height: 1.35;
 }
 
 /* ── Page ───────────────────────────────────────────────────── */
@@ -97,6 +97,44 @@ html, body {
 .red    { color: var(--fg-red); }
 .center { text-align: center; }
 .bold   { font-weight: bold; letter-spacing: 0.05em; }
+
+/* ── Title screen ───────────────────────────────────────────── */
+#title-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(900px, 96vw);
+    height: min(600px, 94vh);
+    background: #000;
+    border: 2px solid #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow:
+        0 0 8px  rgba(255, 176, 0, 0.15),
+        0 0 30px rgba(255, 176, 0, 0.05),
+        inset 0 0 60px rgba(0, 0, 0, 0.6);
+}
+
+#title-image {
+    width: 100%;
+    height: auto;
+    max-height: 85%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+#title-prompt {
+    font-family: var(--font);
+    font-size: 32px;
+    color: var(--fg);
+    margin-top: 16px;
+    animation: blink 1.1s step-start infinite;
+    letter-spacing: 0.15em;
+}
+
+/* ── Utility ────────────────────────────────────────────────── */
+.hidden { display: none !important; }
 
 /* ── Input line ─────────────────────────────────────────────── */
 #input-line {
