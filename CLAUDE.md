@@ -53,6 +53,10 @@ The game is plain TypeScript (no framework) rendered into a terminal-style `<div
 - **Box office**: `mq = 38*(aq+bq) + cq + dq`, then `wt = (mq - x) * 8`
 - **Budget cap**: spending above `budgetIdeal` gives no benefit (`mn = hh` when `mm > hh`)
 
+## Development Technique
+
+When writing production code, write the unit test first and use test driven development to help drive out the low level design using both London and Detroit schools of TDD as appropriate
+
 ## Known Issues
 
 - `src/game/gameEngine.ts` line 5: `TS2339 Property 'state' does not exist` — pre-existing stub error, not introduced by working code
