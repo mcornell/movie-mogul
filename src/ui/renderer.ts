@@ -88,13 +88,7 @@ export async function pressAnyKey(): Promise<void> {
     printBlank();
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
-
-/** Format a dollar amount from thousands: 1500 → "$1,500,000" */
-export function formatMoney(thousands: number): string {
-    const full = thousands * 1000;
-    return '$' + full.toLocaleString('en-US');
-}
+export { formatMoney } from './format';
 
 function sleep(ms: number): Promise<void> {
     return new Promise(r => setTimeout(r, ms));

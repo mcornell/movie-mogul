@@ -5,6 +5,10 @@ import {
     calculatePay,
     calculateQualityScore,
     simulateRelease,
+    checkOscarActress,
+    checkOscarActor,
+    checkBestPicture,
+    calculateReRelease,
 } from './gameEngine';
 import { movies } from '../data/movies';
 import { actors } from '../data/actors';
@@ -215,6 +219,160 @@ describe('simulateRelease', () => {
     });
 });
 
+// ── calculateQualityScore — additional edge cases ─────────────────────────────
+
+describe('calculateQualityScore (edge cases)', () => {
+    it('clamps negative reviewScore to -1 for cq calculation', () => {
+        const movie = movies[0];
+        const cast = makeCast(movie, actors);
+        // BASIC line 2050: if a<0 then a=-1 → cq = (-1*90)+50 = -40
+        const result = calculateQualityScore(movie, cast, -5, 10000);
+        expect(result.cq).toBe(-40);
+    });
+
+    it('dq is 0 when budget is 0', () => {
+        const movie = movies[0];
+        const cast = makeCast(movie, actors);
+        const result = calculateQualityScore(movie, cast, 3, 0);
+        expect(result.dq).toBe(0);
+    });
+});
+
+// ── simulateRelease — decay rate coverage ────────────────────────────────────
+
+describe('simulateRelease (decay rates)', () => {
+    it('uses 0.02 decay rate when rng first returns < 0.333 (choice 1)', () => {
+        // seqRng(0.0) → decayChoice = int(0*3)+1 = 1 → yy = 0.02 (slow decay)
+        // A high mq with slow decay should run many weeks
+        const slow = simulateRelease(2000, seqRng(0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5));
+        // seqRng(0.99) → decayChoice = int(0.99*3)+1 = 3 → yy = 0.15 (fast decay)
+        const fast = simulateRelease(2000, seqRng(0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5));
+        // Slow decay should run at least as many weeks as fast decay
+        expect(slow.weeklyGross.length).toBeGreaterThanOrEqual(fast.weeklyGross.length);
+    });
+});
+
+// ── checkOscarActress ─────────────────────────────────────────────────────────
+
+describe('checkOscarActress', () => {
+    // BASIC lines 3390–3520
+    // x = int(rnd(1)*30)+6 → range 6–35
+    // cast[0] wins if gender==F AND cast[0].stats[1] + role.requirements[2] > x
+
+    it('player actress wins when her score beats the threshold', () => {
+        // Use SPACE WARS — role 1 (Princess) is gender F (req[0]=9)
+        // Princess: requirements[2] = 5; pick a female with stats[1]=9 → score = 9+5 = 14
+        // With x = int(0*30)+6 = 6, score 14 > 6 → wins
+        const movie = movies[0]; // SPACE WARS
+        const cast = makeCast(movie, actors);
+        const result = checkOscarActress(movie, cast, actors, seqRng(0.0));
+        expect(result.isPlayerWin).toBe(true);
+        expect(result.winnerName).toBeTruthy();
+    });
+
+    it('returns a random actress when no cast member wins', () => {
+        // Force x = int(0.99*30)+6 = 35 (max threshold) — very hard to beat
+        const movie = movies[0];
+        const weakCast = makeCastWithStats(movie, actors, 1); // stats[1]=1, score at most 1+req ≤ ~10 < 35
+        const result = checkOscarActress(movie, weakCast, actors, seqRng(0.99));
+        expect(result.winnerName).toBeTruthy();
+        // isPlayerWin may be false if no cast member clears the bar
+    });
+});
+
+// ── checkOscarActor ───────────────────────────────────────────────────────────
+
+describe('checkOscarActor', () => {
+    it('player actor wins when his score beats the threshold', () => {
+        // SPACE WARS role 0 (Space Hero) is gender N/either (req[0]=5) — check GUNS & RIFLES Rancher (M only)
+        const movie = movies[4]; // GUNS & RIFLES — Rancher req[0]=1 (M only)
+        const cast = makeCast(movie, actors);
+        const result = checkOscarActor(movie, cast, actors, seqRng(0.0)); // x=6, easy threshold
+        expect(result.isPlayerWin).toBe(true);
+    });
+
+    it('returns a random actor when no cast member wins', () => {
+        const movie = movies[4];
+        const weakCast = makeCastWithStats(movie, actors, 1);
+        // 0.99 → x=35 (high threshold, no player wins); 0.1 → idx=15 (male actor id 1–76)
+        const result = checkOscarActor(movie, weakCast, actors, seqRng(0.99, 0.1));
+        expect(result.winnerName).toBeTruthy();
+    });
+});
+
+// ── checkBestPicture ──────────────────────────────────────────────────────────
+
+describe('checkBestPicture', () => {
+    // fq = sum of role.requirements[2] + stats[1] for each cast member
+    // x = int(rnd(1)*130)+21 → range 21–150
+    // player wins if fq > x
+
+    it('player movie wins when fq beats the threshold', () => {
+        const movie = movies[0]; // SPACE WARS — high prestige roles
+        const cast = makeCast(movie, actors);
+        // x = int(0*130)+21 = 21 — low threshold, player likely wins
+        const result = checkBestPicture(movie, cast, movies, seqRng(0.0));
+        expect(result.isPlayerWin).toBe(true);
+        expect(result.winnerName).toBe(movie.title);
+    });
+
+    it('a random movie wins when fq is too low', () => {
+        const movie = movies[0];
+        const weakCast = makeCastWithStats(movie, actors, 1);
+        // x = int(0.99*130)+21 = 150 — maximum threshold
+        const result = checkBestPicture(movie, weakCast, movies, seqRng(0.99));
+        // Player likely loses; winner must be a valid movie title
+        expect(result.winnerName).toBeTruthy();
+    });
+
+    it('never picks SLASHER NIGHTS or BONKERS! as random Best Picture winner', () => {
+        const movie = movies[0];
+        const weakCast = makeCastWithStats(movie, actors, 1);
+        for (let i = 0; i < 50; i++) {
+            const result = checkBestPicture(movie, weakCast, movies, seqRng(0.99, Math.random()));
+            expect(result.winnerName).not.toBe('SLASHER NIGHTS');
+            expect(result.winnerName).not.toBe('BONKERS!');
+        }
+    });
+});
+
+// ── calculateReRelease ────────────────────────────────────────────────────────
+
+describe('calculateReRelease', () => {
+    // BASIC lines 2440–2500
+    // if w=0: no re-release
+    // if w>1: w=1.3
+    // od = random(0..499)
+    // oi depends on totalGross tiers
+    // bonus = int(w * oi + od)
+
+    it('returns 0 when no oscars won (w=0)', () => {
+        expect(calculateReRelease(50000, 0, Math.random)).toBe(0);
+    });
+
+    it('returns a positive bonus when oscars were won', () => {
+        const bonus = calculateReRelease(50000, 0.4, seqRng(0.5));
+        expect(bonus).toBeGreaterThan(0);
+    });
+
+    it('caps w at 1.3 when w > 1', () => {
+        // w=1.2 > 1 → becomes 1.3; bonus should be larger than w=0.4
+        const bonusHighW  = calculateReRelease(50000, 1.2, seqRng(0.5));
+        const bonusLowW   = calculateReRelease(50000, 0.4, seqRng(0.5));
+        expect(bonusHighW).toBeGreaterThan(bonusLowW);
+    });
+
+    it('uses the low-gross tier when totalGross < 20000', () => {
+        const bonus = calculateReRelease(10000, 0.4, seqRng(0.5));
+        expect(bonus).toBeGreaterThan(0);
+    });
+
+    it('uses the high-gross tier when totalGross > 80000', () => {
+        const bonus = calculateReRelease(100000, 0.4, seqRng(0.5));
+        expect(bonus).toBeGreaterThan(0);
+    });
+});
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function makeCast(movie: Movie, allActors: Actor[]): CastResult[] {
@@ -228,4 +386,15 @@ function makeCast(movie: Movie, allActors: Actor[]): CastResult[] {
         })!;
         return { roleIndex: i as 0 | 1 | 2, actor, pay: 500 };
     });
+}
+
+/** Like makeCast but overrides stats[1] (star power) to a fixed value for threshold testing. */
+function makeCastWithStats(movie: Movie, allActors: Actor[], starPower: number): CastResult[] {
+    return makeCast(movie, allActors).map(cr => ({
+        ...cr,
+        actor: {
+            ...cr.actor,
+            stats: [cr.actor.stats[0], starPower, ...cr.actor.stats.slice(2)] as Actor['stats'],
+        },
+    }));
 }

@@ -153,3 +153,134 @@ export function simulateRelease(mq: number, rng: () => number): ReleaseResult {
         totalGross: weeklyGross.reduce((sum, w) => sum + w, 0),
     };
 }
+
+// ── Phase 6: Academy Awards ───────────────────────────────────────────────────
+
+export interface OscarResult {
+    winnerName: string;
+    isPlayerWin: boolean;
+    /** Oscar weight added to w (0.4 per acting award, 1.0 for best picture) */
+    weight: number;
+}
+
+/**
+ * Determine the Best Actress winner.
+ * Mirrors BASIC lines 3390–3520.
+ *
+ * NOTE: The original has a known bug — lines 3420 and 3430 use ao(3) (cast[0]'s
+ * star power) instead of tw(3)/tr(3) for cast members 2 and 3. We replicate it faithfully.
+ */
+export function checkOscarActress(
+    movie: Movie,
+    cast: CastResult[],
+    allActors: Actor[],
+    rng: () => number,
+): OscarResult {
+    const x = int(rng() * 30) + 6; // 6–35
+    const starPowerActor0 = cast[0].actor.stats[1]; // ao(3) — used for all 3 (C64 bug)
+
+    for (const cr of cast) {
+        if (cr.actor.gender !== 'F') continue;
+        const prestige = movie.roles[cr.roleIndex].requirements[2];
+        if (starPowerActor0 + prestige > x) {
+            const name = cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name;
+            return { winnerName: name, isPlayerWin: true, weight: 0.4 };
+        }
+    }
+
+    // No cast member won — pick a random actress from the full pool
+    const castNames = new Set(cast.map(cr => cr.actor.name));
+    let winner: Actor;
+    do {
+        const idx = int(rng() * 140) + 1;
+        winner = allActors.find(a => a.id === idx)!;
+    } while (!winner || winner.gender !== 'F' || castNames.has(winner.name));
+
+    return { winnerName: winner.name, isPlayerWin: false, weight: 0 };
+}
+
+/**
+ * Determine the Best Actor winner.
+ * Mirrors BASIC lines 3530–3660. Same logic as checkOscarActress but gender M.
+ */
+export function checkOscarActor(
+    movie: Movie,
+    cast: CastResult[],
+    allActors: Actor[],
+    rng: () => number,
+): OscarResult {
+    const x = int(rng() * 30) + 6;
+    const starPowerActor0 = cast[0].actor.stats[1]; // ao(3) — C64 bug applies here too
+
+    for (const cr of cast) {
+        if (cr.actor.gender !== 'M') continue;
+        const prestige = movie.roles[cr.roleIndex].requirements[2];
+        if (starPowerActor0 + prestige > x) {
+            return { winnerName: cr.actor.name, isPlayerWin: true, weight: 0.4 };
+        }
+    }
+
+    const castNames = new Set(cast.map(cr => cr.actor.name));
+    let winner: Actor;
+    do {
+        const idx = int(rng() * 140) + 1;
+        winner = allActors.find(a => a.id === idx)!;
+    } while (!winner || winner.gender !== 'M' || castNames.has(winner.name));
+
+    return { winnerName: winner.name, isPlayerWin: false, weight: 0 };
+}
+
+/**
+ * Determine the Best Picture winner.
+ * Mirrors BASIC lines 3670–3770.
+ */
+export function checkBestPicture(
+    movie: Movie,
+    cast: CastResult[],
+    allMovies: Movie[],
+    rng: () => number,
+): OscarResult {
+    // fq = sum of role prestige requirements + star power of all 3 cast members
+    const fq =
+        movie.roles.reduce((sum, r) => sum + r.requirements[2], 0) +
+        cast.reduce((sum, cr) => sum + cr.actor.stats[1], 0);
+
+    const x = int(rng() * 130) + 21; // 21–150
+
+    if (fq > x) {
+        return { winnerName: movie.title, isPlayerWin: true, weight: 1.0 };
+    }
+
+    // Random movie wins — not SLASHER NIGHTS (id=2) or BONKERS! (id=7)
+    const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
+    const winner = eligible[int(rng() * eligible.length)];
+    return { winnerName: winner.title, isPlayerWin: false, weight: 0 };
+}
+
+// ── Phase 6: Re-release ───────────────────────────────────────────────────────
+
+/**
+ * Calculate the re-release bonus gross when at least one Oscar was won.
+ * Mirrors BASIC lines 2440–2500.
+ *
+ * @param totalGross - total theatrical gross so far (thousands)
+ * @param w - accumulated Oscar weight (0.4 per acting award, 1.0 for picture)
+ * @returns bonus gross in thousands, or 0 if w=0
+ */
+export function calculateReRelease(totalGross: number, w: number, rng: () => number): number {
+    if (w === 0) return 0;
+    if (w > 1) w = 1.3;
+
+    const od = int(rng() * 500); // 0–499
+
+    let oi: number;
+    if (totalGross < 20000) {
+        oi = int(rng() * 20000) + 9501;          // 9501–29500
+    } else if (totalGross > 80000) {
+        oi = (int(rng() * 6) + 15) / 100 * totalGross; // 15–20% of total
+    } else {
+        oi = (int(rng() * 20) + 20) / 100 * totalGross; // 20–39% of total
+    }
+
+    return int(w * oi + od);
+}
