@@ -7,9 +7,14 @@ import {
     calculatePay,
     calculateQualityScore,
     simulateRelease,
+    checkOscarActress,
+    checkOscarActor,
+    checkBestPicture,
+    calculateReRelease,
 } from './game/gameEngine';
 import { initialGameState } from './game/gameState';
 import type { GameState } from './game/gameState';
+import { reviewVerdict, budgetOverrun, pullFromTheatersLine, profitLossResult } from './game/phaseHelpers';
 import {
     print,
     printBlank,
@@ -152,14 +157,8 @@ async function phaseBudget(state: GameState): Promise<void> {
     // Cap at budgetIdeal for scoring purposes (BASIC line 1540)
     const effectiveBudget = Math.min(budget, movie.budgetIdeal);
 
-    // Production overrun event (simplified — full events in a later phase)
-    const roll = Math.random() * 100;
-    let overrun = 0;
-    if (roll < 3)        { print('The production went 30% over budget.', 'red');  overrun = Math.trunc(budget * 0.30); }
-    else if (roll < 7)   { print('The production went 20% over budget.', 'red');  overrun = Math.trunc(budget * 0.20); }
-    else if (roll < 15)  { print('The production went 10% over budget.', 'red');  overrun = Math.trunc(budget * 0.10); }
-    else if (roll < 30)  { print('The production went 2% over budget.');           overrun = Math.trunc(budget * 0.02); }
-    else                 { print('The movie comes in on budget.', 'green'); }
+    const { text: overrunText, overrun } = budgetOverrun(budget, Math.trunc(Math.random() * 100));
+    print(overrunText, overrun > 0 ? 'red' : 'green');
 
     state.productionBudget = budget + overrun;
     state.totalCost = state.salaryCost + state.productionBudget;
@@ -190,14 +189,9 @@ async function phaseReviews(state: GameState): Promise<void> {
     printHeading('The reviews are in...');
 
     for (const reviewer of reviewers) {
-        const roll = Math.trunc(Math.random() * 10) + 1;
-        let verdict: string;
-        if (roll >= 9)      { verdict = 'loved it!';        state.reviewScore += 2; }
-        else if (roll >= 6) { verdict = 'liked it.';        state.reviewScore += 1; }
-        else if (roll >= 3) { verdict = "didn't like it.";  state.reviewScore -= 1; }
-        else                { verdict = 'hated it!';        state.reviewScore -= 3; }
-
-        await printSlow(`${reviewer} ${verdict}`);
+        const { text, scoreDelta } = reviewVerdict(Math.trunc(Math.random() * 10) + 1);
+        state.reviewScore += scoreDelta;
+        await printSlow(`${reviewer} ${text}`);
     }
 
     printBlank();
@@ -233,21 +227,111 @@ async function phaseRelease(state: GameState): Promise<void> {
     const names = state.cast.map(cr =>
         cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name
     );
-    print(`"${movie.title}" starring ${names.join(', ')} has been pulled from theaters after ${weeklyGross.length} weeks.`);
+    print(pullFromTheatersLine(movie.title, names, weeklyGross.length));
     printBlank();
     print(`Subtotal: ${formatMoney(totalGross)}`);
     await pressAnyKey();
 }
 
+/** Pick a random actor not in the cast to serve as a presenter. */
+function pickPresenter(cast: GameState['cast']): string {
+    const castNames = new Set(cast.map(cr => cr.actor.name));
+    let presenter: typeof actors[0] | undefined;
+    do {
+        const idx = Math.trunc(Math.random() * 140) + 1;
+        presenter = actors.find(a => a.id === idx);
+    } while (!presenter || castNames.has(presenter.name));
+    return presenter.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : presenter.name;
+}
+
+async function phaseAwards(state: GameState): Promise<void> {
+    state.phase = 'awards';
+
+    // C64 lines 2315–2318: invitation screen
+    printBlank();
+    print('The Academy of Motion Pictures', 'center');
+    print('invites you to attend its annual', 'center');
+    print('Academy Awards ceremony.', 'bright', 'bold', 'center');
+    printBlank();
+    await pressAnyKey();
+
+    // C64 line 2340
+    print('Welcome to the annual Academy');
+    print('Awards presentation.');
+    printBlank();
+
+    const movie = state.selectedMovie!;
+    let w = 0;
+
+    // ── Best Actress (C64 lines 2350–2361) ───────────────────────────────────
+    print(`Here to present the first award is ${pickPresenter(state.cast)}`);
+    printBlank();
+    print('The winner of the Oscar for Best');
+    print('Actress is ');
+    await pressAnyKey();
+
+    const actressResult = checkOscarActress(movie, state.cast, actors, Math.random);
+    print(actressResult.winnerName, 'bright', 'bold');
+    if (actressResult.isPlayerWin) {
+        state.oscarsWon++;
+        w += actressResult.weight;
+    }
+    printBlank();
+    await pressAnyKey();
+
+    // ── Best Actor (C64 lines 2370–2381) ─────────────────────────────────────
+    print(`Here to present the next Oscar is ${pickPresenter(state.cast)}`);
+    printBlank();
+    print('The winner of the Oscar for Best');
+    print('Actor is ');
+    await pressAnyKey();
+
+    const actorResult = checkOscarActor(movie, state.cast, actors, Math.random);
+    print(actorResult.winnerName, 'bright', 'bold');
+    if (actorResult.isPlayerWin) {
+        state.oscarsWon++;
+        w += actorResult.weight;
+    }
+    printBlank();
+    await pressAnyKey();
+
+    // ── Best Picture (C64 lines 2390–2401) ───────────────────────────────────
+    print(`Here to award the final oscar is ${pickPresenter(state.cast)}`);
+    printBlank();
+    print('The award for Best Picture goes to');
+    await pressAnyKey();
+
+    const pictureResult = checkBestPicture(movie, state.cast, movies, Math.random);
+    print(pictureResult.winnerName, 'bright', 'bold');
+    if (pictureResult.isPlayerWin) {
+        state.oscarsWon++;
+        w += pictureResult.weight;
+    }
+    printBlank();
+    await pressAnyKey();
+
+    // ── Re-release (C64 lines 2420–2510) ─────────────────────────────────────
+    if (w > 0) {
+        print('Because of the Oscars, your movie');
+        print('will be re-released.');
+        const bonus = calculateReRelease(state.totalGross, w, Math.random);
+        state.reReleaseGross = bonus;
+        state.totalGross += bonus;
+        print(`The re-release grosses ${formatMoney(bonus)}`, 'bright');
+    } else {
+        print('Your movie will not be re-released.', 'dim');
+    }
+    printBlank();
+    await pressAnyKey();
+}
+
 async function phaseSummary(state: GameState): Promise<void> {
-    const profit = state.totalGross - state.totalCost;
     printHeading(state.selectedMovie!.title);
-    print(`Total cost:    ${formatMoney(state.totalCost)}`);
-    print(`Total revenue: ${formatMoney(state.totalGross)}`);
+    print(`Total cost - ${formatMoney(state.totalCost)}`);
+    print(`Total revenue - ${formatMoney(state.totalGross)}`);
     printSeparator();
-    if (profit > 0)      print(`You made a profit of ${formatMoney(profit)}`, 'green');
-    else if (profit < 0) print(`You lost ${formatMoney(Math.abs(profit))}`, 'red');
-    else                 print('You came out even!');
+    const { text: verdict, profit } = profitLossResult(state.totalGross, state.totalCost);
+    print(verdict, profit > 0 ? 'green' : profit < 0 ? 'red' : 'bright');
     printBlank();
     await pressAnyKey();
 }
@@ -274,6 +358,7 @@ async function runGame(): Promise<void> {
     await phaseBudget(state);
     await phaseReviews(state);
     await phaseRelease(state);
+    await phaseAwards(state);
     await phaseSummary(state);
 
     printBlank();
