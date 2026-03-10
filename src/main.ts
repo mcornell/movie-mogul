@@ -16,6 +16,15 @@ import { initialGameState } from './game/gameState';
 import type { GameState } from './game/gameState';
 import { reviewVerdict, budgetOverrun, pullFromTheatersLine, profitLossResult } from './game/phaseHelpers';
 import {
+    calculateGameScores,
+    qualifiesFor,
+    insertEntry,
+    buildInitials,
+    loadHighScores,
+    saveHighScores,
+} from './game/highScores';
+import type { HighScoreData } from './game/highScores';
+import {
     print,
     printBlank,
     printSeparator,
@@ -270,8 +279,8 @@ async function phaseAwards(state: GameState): Promise<void> {
     print('Actress is ');
     await pressAnyKey();
 
-    const actressResult = checkOscarActress(movie, state.cast, actors, Math.random);
-    print(actressResult.winnerName, 'bright', 'bold');
+    const actressResult = checkOscarActress(movie, state.cast, actors, movies, Math.random);
+    print(`${actressResult.winnerName} for "${actressResult.winnerMovie}"`, 'bright', 'bold');
     if (actressResult.isPlayerWin) {
         state.oscarsWon++;
         w += actressResult.weight;
@@ -286,8 +295,8 @@ async function phaseAwards(state: GameState): Promise<void> {
     print('Actor is ');
     await pressAnyKey();
 
-    const actorResult = checkOscarActor(movie, state.cast, actors, Math.random);
-    print(actorResult.winnerName, 'bright', 'bold');
+    const actorResult = checkOscarActor(movie, state.cast, actors, movies, Math.random);
+    print(`${actorResult.winnerName} for "${actorResult.winnerMovie}"`, 'bright', 'bold');
     if (actorResult.isPlayerWin) {
         state.oscarsWon++;
         w += actorResult.weight;
@@ -338,6 +347,96 @@ async function phaseSummary(state: GameState): Promise<void> {
 
 // ── Main game loop ────────────────────────────────────────────────────────────
 
+// ── High score display ────────────────────────────────────────────────────────
+
+function printHighScorePage(data: HighScoreData, page: 1 | 2): void {
+    printHeading('HIGH SCORES');
+
+    if (page === 1) {
+        print('HIGHEST PROFIT', 'bright', 'center');
+        printBlank();
+        data.highestProfit.forEach(e => {
+            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${formatMoney(e.score)}`);
+        });
+        printBlank();
+        print('GREATEST REVENUES', 'bright', 'center');
+        printBlank();
+        data.greatestRevenue.forEach(e => {
+            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${formatMoney(e.score)}`);
+        });
+    } else {
+        print('BEST PERCENTAGE RETURNED', 'bright', 'center');
+        printBlank();
+        data.bestPctReturned.forEach(e => {
+            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${e.score}%`);
+        });
+        printBlank();
+        print('BIGGEST BOMBS', 'bright', 'center');
+        printBlank();
+        data.biggestBomb.forEach(e => {
+            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${formatMoney(e.score)}`);
+        });
+    }
+}
+
+async function phaseHighScores(state: GameState): Promise<void> {
+    state.phase = 'high-scores';
+    const movie = state.selectedMovie!;
+    const scores = calculateGameScores(state.totalGross, state.totalCost);
+
+    let data = loadHighScores();
+    const qualifies =
+        qualifiesFor(data.highestProfit,   scores.profit)      ||
+        qualifiesFor(data.greatestRevenue, scores.revenue)     ||
+        qualifiesFor(data.bestPctReturned, scores.pctReturned) ||
+        qualifiesFor(data.biggestBomb,     scores.bomb);
+
+    // Show score (C64 lines 10300–10360)
+    printBlank();
+    const { profit } = profitLossResult(state.totalGross, state.totalCost);
+    print(`Your score - ${formatMoney(Math.abs(profit))} ${profit >= 0 ? 'profit' : 'loss'}`, 'bright', 'center');
+    print(`${scores.pctReturned}% returned`, 'center');
+    printBlank();
+
+    if (qualifies) {
+        // Prompt for initials (C64 lines 10400–10499)
+        let raw = '';
+        while (!raw) {
+            raw = (await readLine('Enter your initials')).trim().toUpperCase().slice(0, 3);
+        }
+        const initials = buildInitials(movie.title, raw, data);
+        const mkEntry = (score: number) => ({ movieTitle: movie.title, initials, score });
+
+        if (qualifiesFor(data.highestProfit,   scores.profit))
+            data.highestProfit   = insertEntry(data.highestProfit,   mkEntry(scores.profit));
+        if (qualifiesFor(data.greatestRevenue, scores.revenue))
+            data.greatestRevenue = insertEntry(data.greatestRevenue, mkEntry(scores.revenue));
+        if (qualifiesFor(data.bestPctReturned, scores.pctReturned))
+            data.bestPctReturned = insertEntry(data.bestPctReturned, mkEntry(scores.pctReturned));
+        if (qualifiesFor(data.biggestBomb,     scores.bomb))
+            data.biggestBomb     = insertEntry(data.biggestBomb,     mkEntry(scores.bomb));
+
+        saveHighScores(data);
+    }
+
+    // Display high scores with P/V/Q navigation (C64 lines 10500–10560)
+    let page: 1 | 2 = 1;
+    printHighScorePage(data, page);
+    printBlank();
+
+    while (true) {
+        print('P)lay Again   V)iew other page   Q)uit', 'dim', 'center');
+        const key = (await waitForKey()).toLowerCase();
+        if (key === 'p') { window.location.reload(); return; }
+        if (key === 'q') return;
+        if (key === 'v') {
+            page = page === 1 ? 2 : 1;
+            printHighScorePage(data, page);
+            printBlank();
+        }
+    }
+}
+
 async function runGame(): Promise<void> {
     const state = initialGameState();
 
@@ -360,11 +459,7 @@ async function runGame(): Promise<void> {
     await phaseRelease(state);
     await phaseAwards(state);
     await phaseSummary(state);
-
-    printBlank();
-    print('Play again? Press any key to restart.', 'dim', 'center');
-    await waitForKey();
-    window.location.reload();
+    await phaseHighScores(state);
 }
 
 runGame();

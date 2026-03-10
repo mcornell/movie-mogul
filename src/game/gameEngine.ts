@@ -158,6 +158,8 @@ export function simulateRelease(mq: number, rng: () => number): ReleaseResult {
 
 export interface OscarResult {
     winnerName: string;
+    /** Movie the winner is cited for — "[name] for [winnerMovie]" (C64 lines 3410/3470/3500) */
+    winnerMovie: string;
     isPlayerWin: boolean;
     /** Oscar weight added to w (0.4 per acting award, 1.0 for best picture) */
     weight: number;
@@ -174,6 +176,7 @@ export function checkOscarActress(
     movie: Movie,
     cast: CastResult[],
     allActors: Actor[],
+    allMovies: Movie[],
     rng: () => number,
 ): OscarResult {
     const x = int(rng() * 30) + 6; // 6–35
@@ -184,11 +187,11 @@ export function checkOscarActress(
         const prestige = movie.roles[cr.roleIndex].requirements[2];
         if (starPowerActor0 + prestige > x) {
             const name = cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name;
-            return { winnerName: name, isPlayerWin: true, weight: 0.4 };
+            return { winnerName: name, winnerMovie: movie.title, isPlayerWin: true, weight: 0.4 };
         }
     }
 
-    // No cast member won — pick a random actress from the full pool
+    // No cast member won — pick a random actress and random movie (BASIC lines 3440–3500)
     const castNames = new Set(cast.map(cr => cr.actor.name));
     let winner: Actor;
     do {
@@ -196,7 +199,10 @@ export function checkOscarActress(
         winner = allActors.find(a => a.id === idx)!;
     } while (!winner || winner.gender !== 'F' || castNames.has(winner.name));
 
-    return { winnerName: winner.name, isPlayerWin: false, weight: 0 };
+    const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
+    const winnerMovie = eligible[int(rng() * eligible.length)].title;
+
+    return { winnerName: winner.name, winnerMovie, isPlayerWin: false, weight: 0 };
 }
 
 /**
@@ -207,6 +213,7 @@ export function checkOscarActor(
     movie: Movie,
     cast: CastResult[],
     allActors: Actor[],
+    allMovies: Movie[],
     rng: () => number,
 ): OscarResult {
     const x = int(rng() * 30) + 6;
@@ -216,7 +223,7 @@ export function checkOscarActor(
         if (cr.actor.gender !== 'M') continue;
         const prestige = movie.roles[cr.roleIndex].requirements[2];
         if (starPowerActor0 + prestige > x) {
-            return { winnerName: cr.actor.name, isPlayerWin: true, weight: 0.4 };
+            return { winnerName: cr.actor.name, winnerMovie: movie.title, isPlayerWin: true, weight: 0.4 };
         }
     }
 
@@ -227,7 +234,10 @@ export function checkOscarActor(
         winner = allActors.find(a => a.id === idx)!;
     } while (!winner || winner.gender !== 'M' || castNames.has(winner.name));
 
-    return { winnerName: winner.name, isPlayerWin: false, weight: 0 };
+    const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
+    const winnerMovie = eligible[int(rng() * eligible.length)].title;
+
+    return { winnerName: winner.name, winnerMovie, isPlayerWin: false, weight: 0 };
 }
 
 /**
@@ -248,13 +258,13 @@ export function checkBestPicture(
     const x = int(rng() * 130) + 21; // 21–150
 
     if (fq > x) {
-        return { winnerName: movie.title, isPlayerWin: true, weight: 1.0 };
+        return { winnerName: movie.title, winnerMovie: movie.title, isPlayerWin: true, weight: 1.0 };
     }
 
     // Random movie wins — not SLASHER NIGHTS (id=2) or BONKERS! (id=7)
     const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
     const winner = eligible[int(rng() * eligible.length)];
-    return { winnerName: winner.title, isPlayerWin: false, weight: 0 };
+    return { winnerName: winner.title, winnerMovie: winner.title, isPlayerWin: false, weight: 0 };
 }
 
 // ── Phase 6: Re-release ───────────────────────────────────────────────────────

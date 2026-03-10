@@ -265,18 +265,22 @@ describe('checkOscarActress', () => {
         // With x = int(0*30)+6 = 6, score 14 > 6 → wins
         const movie = movies[0]; // SPACE WARS
         const cast = makeCast(movie, actors);
-        const result = checkOscarActress(movie, cast, actors, seqRng(0.0));
+        const result = checkOscarActress(movie, cast, actors, movies, seqRng(0.0));
         expect(result.isPlayerWin).toBe(true);
         expect(result.winnerName).toBeTruthy();
+        expect(result.winnerMovie).toBe(movie.title);
     });
 
-    it('returns a random actress when no cast member wins', () => {
+    it('returns a random actress with a random movie when no cast member wins', () => {
         // Force x = int(0.99*30)+6 = 35 (max threshold) — very hard to beat
         const movie = movies[0];
-        const weakCast = makeCastWithStats(movie, actors, 1); // stats[1]=1, score at most 1+req ≤ ~10 < 35
-        const result = checkOscarActress(movie, weakCast, actors, seqRng(0.99));
+        const weakCast = makeCastWithStats(movie, actors, 1);
+        // 0.99→x=35, 0.99→actress idx=139, 0.5→movie selection
+        const result = checkOscarActress(movie, weakCast, actors, movies, seqRng(0.99, 0.5));
         expect(result.winnerName).toBeTruthy();
-        // isPlayerWin may be false if no cast member clears the bar
+        expect(result.winnerMovie).toBeTruthy();
+        expect(result.winnerMovie).not.toBe('SLASHER NIGHTS');
+        expect(result.winnerMovie).not.toBe('BONKERS!');
     });
 });
 
@@ -287,16 +291,18 @@ describe('checkOscarActor', () => {
         // SPACE WARS role 0 (Space Hero) is gender N/either (req[0]=5) — check GUNS & RIFLES Rancher (M only)
         const movie = movies[4]; // GUNS & RIFLES — Rancher req[0]=1 (M only)
         const cast = makeCast(movie, actors);
-        const result = checkOscarActor(movie, cast, actors, seqRng(0.0)); // x=6, easy threshold
+        const result = checkOscarActor(movie, cast, actors, movies, seqRng(0.0)); // x=6, easy threshold
         expect(result.isPlayerWin).toBe(true);
+        expect(result.winnerMovie).toBe(movie.title);
     });
 
-    it('returns a random actor when no cast member wins', () => {
+    it('returns a random actor with a random movie when no cast member wins', () => {
         const movie = movies[4];
         const weakCast = makeCastWithStats(movie, actors, 1);
-        // 0.99 → x=35 (high threshold, no player wins); 0.1 → idx=15 (male actor id 1–76)
-        const result = checkOscarActor(movie, weakCast, actors, seqRng(0.99, 0.1));
+        // 0.99→x=35, 0.1→actor idx=15 (male), 0.5→movie selection
+        const result = checkOscarActor(movie, weakCast, actors, movies, seqRng(0.99, 0.1, 0.5));
         expect(result.winnerName).toBeTruthy();
+        expect(result.winnerMovie).toBeTruthy();
     });
 });
 
