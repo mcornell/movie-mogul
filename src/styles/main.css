@@ -40,8 +40,8 @@ html, body {
 /* ── CRT screen ─────────────────────────────────────────────── */
 #screen {
     position: relative;
-    width: min(900px, 96vw);
-    height: min(600px, 94vh);
+    width: min(1100px, 96vw);
+    height: 94vh;
     background: var(--bg);
     border: 2px solid #2a2a2a;
     border-radius: 4px;
@@ -104,8 +104,8 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: min(900px, 96vw);
-    height: min(600px, 94vh);
+    width: min(1100px, 96vw);
+    height: 94vh;
     background: #000;
     border: 2px solid #2a2a2a;
     border-radius: 4px;
