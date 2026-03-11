@@ -113,7 +113,11 @@ export function budgetOverrun(budget: number, roll: number): OverrunResult {
  * Mirrors BASIC lines 2270–2280.
  */
 export function pullFromTheatersLine(title: string, castNames: string[], weeks: number): string {
-    return `"${title}" starring ${castNames.join(', ')} has been pulled from theaters after ${weeks} weeks.`;
+    // C64 line 2281: a1$ + ", " + a2$ + " and " + a3$
+    const names = castNames.length < 2
+        ? castNames[0] ?? ''
+        : `${castNames.slice(0, -1).join(', ')} and ${castNames[castNames.length - 1]}`;
+    return `"${title}" starring ${names} has been pulled from theaters after ${weeks} weeks.`;
 }
 
 // ── Phase 6: Summary ──────────────────────────────────────────────────────────

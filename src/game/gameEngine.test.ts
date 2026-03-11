@@ -9,6 +9,7 @@ import {
     checkOscarActor,
     checkBestPicture,
     calculateReRelease,
+    isMovieEligibleForOscar,
 } from './gameEngine';
 import { movies } from '../data/movies';
 import { actors } from '../data/actors';
@@ -249,6 +250,57 @@ describe('simulateRelease (decay rates)', () => {
         const fast = simulateRelease(2000, seqRng(0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5));
         // Slow decay should run at least as many weeks as fast decay
         expect(slow.weeklyGross.length).toBeGreaterThanOrEqual(fast.weeklyGross.length);
+    });
+});
+
+// ── isMovieEligibleForOscar ───────────────────────────────────────────────────
+
+describe('isMovieEligibleForOscar', () => {
+    // Mirrors C64 gosub7000 (lines 7000–7090)
+    const playerMovie = movies.find(m => m.id === 1)!;  // SPACE WARS
+    const movie2  = movies.find(m => m.id === 2)!;      // SLASHER NIGHTS (always excluded)
+    const movie6  = movies.find(m => m.id === 6)!;      // FINAL REUNION
+    const movie7  = movies.find(m => m.id === 7)!;      // BONKERS! (always excluded)
+    const movie9  = movies.find(m => m.id === 9)!;      // I'VE GOT MUSIC
+    const movie3  = movies.find(m => m.id === 3)!;      // a safe movie
+
+    const makeActor = (gender: 'M' | 'F', stats0: number, stats5: number): Actor => ({
+        id: 99, name: 'Test', gender,
+        stats: [stats0, 5, 5, 5, 5, stats5, 5],
+    });
+
+    it('always excludes the player movie, movie 2, and movie 7', () => {
+        const actor = makeActor('M', 6, 7);
+        expect(isMovieEligibleForOscar(playerMovie, actor, playerMovie)).toBe(false);
+        expect(isMovieEligibleForOscar(movie2,      actor, playerMovie)).toBe(false);
+        expect(isMovieEligibleForOscar(movie7,      actor, playerMovie)).toBe(false);
+    });
+
+    it('allows safe movies for any winner', () => {
+        expect(isMovieEligibleForOscar(movie3, makeActor('F', 4, 2), playerMovie)).toBe(true);
+    });
+
+    // line 7010: exclude movie 9 when winner.stats[5] < 5
+    it('excludes movie 9 when winner stats[5] < 5', () => {
+        expect(isMovieEligibleForOscar(movie9, makeActor('M', 6, 4), playerMovie)).toBe(false);
+    });
+
+    it('allows movie 9 when winner stats[5] >= 5', () => {
+        expect(isMovieEligibleForOscar(movie9, makeActor('M', 6, 5), playerMovie)).toBe(true);
+    });
+
+    // line 7020: exclude movie 6 when winner is female AND winner.stats[0] < 5
+    it('excludes movie 6 when winner is female and stats[0] < 5', () => {
+        expect(isMovieEligibleForOscar(movie6, makeActor('F', 4, 7), playerMovie)).toBe(false);
+    });
+
+    it('allows movie 6 when winner is female and stats[0] >= 5', () => {
+        expect(isMovieEligibleForOscar(movie6, makeActor('F', 5, 7), playerMovie)).toBe(true);
+    });
+
+    it('allows movie 6 for male winner regardless of stats[0]', () => {
+        // line 7020 checks x%(1)=9 (female gender code) — never true for males
+        expect(isMovieEligibleForOscar(movie6, makeActor('M', 1, 1), playerMovie)).toBe(true);
     });
 });
 

@@ -182,9 +182,18 @@ describe('budgetOverrun', () => {
 // ── pullFromTheatersLine ──────────────────────────────────────────────────────
 
 describe('pullFromTheatersLine', () => {
-    it('formats the closing line with title, cast, and week count', () => {
+    it('joins 3 names as "A, B and C" (C64 line 2281)', () => {
         const line = pullFromTheatersLine('SPACE WARS', ['Ford', 'Fisher', 'Hamill'], 8);
-        expect(line).toBe('"SPACE WARS" starring Ford, Fisher, Hamill has been pulled from theaters after 8 weeks.');
+        expect(line).toBe('"SPACE WARS" starring Ford, Fisher and Hamill has been pulled from theaters after 8 weeks.');
+    });
+
+    it('joins 2 names as "A and B"', () => {
+        const line = pullFromTheatersLine('FILM', ['Ford', 'Fisher'], 3);
+        expect(line).toContain('Ford and Fisher');
+    });
+
+    it('handles a single name', () => {
+        expect(pullFromTheatersLine('BOMB', ['Actor'], 1)).toContain('starring Actor');
     });
 
     it('handles a single week', () => {

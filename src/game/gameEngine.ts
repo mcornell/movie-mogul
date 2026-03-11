@@ -156,6 +156,25 @@ export function simulateRelease(mq: number, rng: () => number): ReleaseResult {
 
 // ── Phase 6: Academy Awards ───────────────────────────────────────────────────
 
+/**
+ * Implements C64 gosub7000 — determines whether a randomly selected movie is
+ * eligible to appear as the award-winning film for a non-player actress/actor winner.
+ *
+ * BASIC lines 7000–7090:
+ *   7010 if x=9 and x%(7)<5 then n%=1   ← exclude movie 9 if winner.stats[5] < 5
+ *   7020 if x=6 and x%(1)=9 and x%(2)<5 then n%=1  ← exclude movie 6 if female winner with stats[0] < 5
+ *   7030 if player's movie OR id=2 OR id=7 then n%=1
+ *
+ * x%() is populated from the winner actor's an%() array just before gosub7000 is called
+ * (lines 3475 / 3615): x%(1)=gender, x%(2)=stats[0], x%(7)=stats[5].
+ */
+export function isMovieEligibleForOscar(movie: Movie, winner: Actor, playerMovie: Movie): boolean {
+    if (movie.id === playerMovie.id || movie.id === 2 || movie.id === 7) return false;
+    if (movie.id === 9 && winner.stats[5] < 5) return false;
+    if (movie.id === 6 && winner.gender === 'F' && winner.stats[0] < 5) return false;
+    return true;
+}
+
 export interface OscarResult {
     winnerName: string;
     /** Movie the winner is cited for — "[name] for [winnerMovie]" (C64 lines 3410/3470/3500) */
@@ -199,7 +218,7 @@ export function checkOscarActress(
         winner = allActors.find(a => a.id === idx)!;
     } while (!winner || winner.gender !== 'F' || castNames.has(winner.name));
 
-    const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
+    const eligible = allMovies.filter(m => isMovieEligibleForOscar(m, winner, movie));
     const winnerMovie = eligible[int(rng() * eligible.length)].title;
 
     return { winnerName: winner.name, winnerMovie, isPlayerWin: false, weight: 0 };
@@ -234,7 +253,7 @@ export function checkOscarActor(
         winner = allActors.find(a => a.id === idx)!;
     } while (!winner || winner.gender !== 'M' || castNames.has(winner.name));
 
-    const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
+    const eligible = allMovies.filter(m => isMovieEligibleForOscar(m, winner, movie));
     const winnerMovie = eligible[int(rng() * eligible.length)].title;
 
     return { winnerName: winner.name, winnerMovie, isPlayerWin: false, weight: 0 };

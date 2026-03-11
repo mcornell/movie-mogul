@@ -35,6 +35,7 @@ import {
     readLine,
     pressAnyKey,
     formatMoney,
+    sleep,
 } from './ui/renderer';
 
 // ── Title screen ──────────────────────────────────────────────────────────────
@@ -59,9 +60,6 @@ async function phaseMovieSelection(state: GameState): Promise<void> {
     state.movieChoices = pickMovieChoices(movies, Math.random);
     state.phase = 'movie-selection';
 
-    print('You have been sent three scripts.', 'bright');
-    printBlank();
-
     for (let i = 0; i < 3; i++) {
         const movie = state.movieChoices[i];
         print(`${i + 1})  ${movie.title}`, 'bright');
@@ -72,6 +70,7 @@ async function phaseMovieSelection(state: GameState): Promise<void> {
         printBlank();
     }
 
+    print('You have been sent three scripts.', 'bright');
     let choice = 0;
     while (choice < 1 || choice > 3) {
         const input = await readLine('Which do you want to produce (1-3)?');
@@ -135,9 +134,9 @@ async function phaseCasting(state: GameState): Promise<void> {
         pickedPoolIndices.push(poolIdx);
         const actor = state.actorPool[poolIdx];
 
-        // Reconstruct full name for Schwarzenegger
+        // Reconstruct full name for Schwarzenegger (BASIC lines 1492–1494)
         const displayName = actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : actor.name;
-        print(`${role.name}: ${displayName}`, 'bright');
+        print(displayName, 'bright');
 
         state.cast.push({ roleIndex: roleIdx, actor, pay: state.actorPays[poolIdx] });
     }
@@ -152,6 +151,8 @@ async function phaseBudget(state: GameState): Promise<void> {
     const movie = state.selectedMovie!;
     state.phase = 'budget';
 
+    // BASIC lines 1501–1502: remind player of salary commitment before budget input
+    print(`Total cost of salaries: ${formatMoney(state.salaryCost)}`, 'bright');
     printBlank();
     print(`How much do you want to spend on production?`);
     print(`(${formatMoney(movie.budgetMin)} - $30,000,000)`, 'dim');
@@ -194,8 +195,9 @@ async function phaseBudget(state: GameState): Promise<void> {
     print(`Total cost: ${formatMoney(state.totalCost)}`);
     await pressAnyKey();
 
-    // Store effective budget for quality score
-    state.productionBudget = effectiveBudget + overrun;
+    // Store effective budget for quality score — overrun adds to cost but not to quality
+    // (C64: mn = min(budget, ideal) is set before overrun, quality score uses mn)
+    state.productionBudget = effectiveBudget;
 }
 
 async function phaseReviews(state: GameState): Promise<void> {
@@ -221,6 +223,7 @@ async function phaseReviews(state: GameState): Promise<void> {
     for (const reviewer of reviewers) {
         const { text, scoreDelta } = reviewVerdict(Math.trunc(Math.random() * 10) + 1);
         state.reviewScore += scoreDelta;
+        await sleep(800); // C64 had a ~500-iteration delay loop before each verdict (line 3840)
         await printSlow(`${reviewer} ${text}`);
     }
 
@@ -307,28 +310,39 @@ async function phaseAwards(state: GameState): Promise<void> {
     clearScreen();
     state.phase = 'awards';
 
-    // C64 lines 2315–2318: invitation screen
+    // C64 lines 2300–2319: invitation screen with frame
+    const border = '+----------------------------------+';
+    const row = (s: string) => `! ${s.padEnd(32)} !`;
+    print(border, 'bright', 'center');
+    print(row(''), 'bright', 'center');
+    print(row('  * I n v i t a t i o n *'), 'bright', 'center');
+    print(row('  ======================='), 'bright', 'center');
+    print(row(''), 'bright', 'center');
+    print(row(' The Academy of Motion Pictures'), 'bright', 'center');
+    print(row(' Arts and Sciences cordially'), 'bright', 'center');
+    print(row(' invites you to attend its annual'), 'bright', 'center');
+    print(row(' Academy Awards ceremony.'), 'bright', 'center');
+    print(row(''), 'bright', 'center');
+    print(border, 'bright', 'center');
     printBlank();
-    print('The Academy of Motion Pictures', 'center');
-    print('invites you to attend its annual', 'center');
-    print('Academy Awards ceremony.', 'bright', 'bold', 'center');
-    printBlank();
-    await pressAnyKey();
-
-    // C64 line 2340
-    print('Welcome to the annual Academy');
-    print('Awards presentation.');
+    print('Press any key to attend', 'dim', 'center');
+    await waitForKey();
     printBlank();
 
     const movie = state.selectedMovie!;
     let w = 0;
 
     // ── Best Actress (C64 lines 2350–2361) ───────────────────────────────────
+    // C64: delay loop before reveal (fordl=1to500:nextdl), no keypress between awards
+    clearScreen();
+    print('Welcome to the annual Academy');
+    print('Awards presentation.');
+    printBlank();
     print(`Here to present the first award is ${pickPresenter(state.cast)}`);
     printBlank();
     print('The winner of the Oscar for Best');
-    print('Actress is ');
-    await pressAnyKey();
+    print('Actress is...');
+    await sleep(1500);
 
     const actressResult = checkOscarActress(movie, state.cast, actors, movies, Math.random);
     print(`${actressResult.winnerName} for "${actressResult.winnerMovie}"`, 'bright', 'bold');
@@ -336,15 +350,15 @@ async function phaseAwards(state: GameState): Promise<void> {
         state.oscarsWon++;
         w += actressResult.weight;
     }
-    printBlank();
-    await pressAnyKey();
 
     // ── Best Actor (C64 lines 2370–2381) ─────────────────────────────────────
+    await sleep(2500);
+    clearScreen();
     print(`Here to present the next Oscar is ${pickPresenter(state.cast)}`);
     printBlank();
     print('The winner of the Oscar for Best');
-    print('Actor is ');
-    await pressAnyKey();
+    print('Actor is...');
+    await sleep(1500);
 
     const actorResult = checkOscarActor(movie, state.cast, actors, movies, Math.random);
     print(`${actorResult.winnerName} for "${actorResult.winnerMovie}"`, 'bright', 'bold');
@@ -352,14 +366,14 @@ async function phaseAwards(state: GameState): Promise<void> {
         state.oscarsWon++;
         w += actorResult.weight;
     }
-    printBlank();
-    await pressAnyKey();
 
     // ── Best Picture (C64 lines 2390–2401) ───────────────────────────────────
+    await sleep(2500);
+    clearScreen();
     print(`Here to award the final oscar is ${pickPresenter(state.cast)}`);
     printBlank();
-    print('The award for Best Picture goes to');
-    await pressAnyKey();
+    print('The award for Best Picture goes to...');
+    await sleep(1500);
 
     const pictureResult = checkBestPicture(movie, state.cast, movies, Math.random);
     print(pictureResult.winnerName, 'bright', 'bold');
@@ -367,10 +381,10 @@ async function phaseAwards(state: GameState): Promise<void> {
         state.oscarsWon++;
         w += pictureResult.weight;
     }
-    printBlank();
-    await pressAnyKey();
 
     // ── Re-release (C64 lines 2420–2510) ─────────────────────────────────────
+    await sleep(2500);
+    clearScreen();
     if (w > 0) {
         print('Because of the Oscars, your movie');
         print('will be re-released.');

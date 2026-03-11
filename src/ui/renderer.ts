@@ -94,6 +94,6 @@ export async function pressAnyKey(): Promise<void> {
 
 export { formatMoney } from './format';
 
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
     return new Promise(r => setTimeout(r, ms));
 }
