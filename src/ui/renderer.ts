@@ -8,6 +8,10 @@ const inputPrompt = document.getElementById('prompt')!;
 
 // ── Output ────────────────────────────────────────────────────────────────────
 
+export function clearScreen(): void {
+    output.innerHTML = '';
+}
+
 export function print(text: string, ...classes: CssClass[]): void {
     const line = document.createElement('div');
     if (classes.length) line.className = classes.join(' ');

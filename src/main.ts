@@ -30,6 +30,7 @@ import {
     printSeparator,
     printSlow,
     printHeading,
+    clearScreen,
     waitForKey,
     readLine,
     pressAnyKey,
@@ -54,6 +55,7 @@ async function showTitleScreen(): Promise<void> {
 // ── Game phases ───────────────────────────────────────────────────────────────
 
 async function phaseMovieSelection(state: GameState): Promise<void> {
+    clearScreen();
     state.movieChoices = pickMovieChoices(movies, Math.random);
     state.phase = 'movie-selection';
 
@@ -81,6 +83,7 @@ async function phaseMovieSelection(state: GameState): Promise<void> {
 }
 
 async function phaseCasting(state: GameState): Promise<void> {
+    clearScreen();
     const movie = state.selectedMovie!;
     state.phase = 'casting';
 
@@ -145,6 +148,7 @@ async function phaseCasting(state: GameState): Promise<void> {
 }
 
 async function phaseBudget(state: GameState): Promise<void> {
+    clearScreen();
     const movie = state.selectedMovie!;
     state.phase = 'budget';
 
@@ -180,6 +184,7 @@ async function phaseBudget(state: GameState): Promise<void> {
 }
 
 async function phaseReviews(state: GameState): Promise<void> {
+    clearScreen();
     state.phase = 'reviews';
     state.reviewScore = 3; // BASIC line 180
 
@@ -208,10 +213,38 @@ async function phaseReviews(state: GameState): Promise<void> {
 }
 
 async function phaseRelease(state: GameState): Promise<void> {
+    clearScreen();
     const movie = state.selectedMovie!;
     state.phase = 'release';
 
-    printHeading(`MAJOR STUDIO SNEAK PREVIEW of "${movie.title}"`);
+    // Build display names (C64 lines 1731–1770): Schwarzenegger sorted first
+    let [vx, vy, vz] = state.cast.map(cr =>
+        cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name
+    );
+    if (vy.length === 21) { [vx, vy] = [vy, vx]; }
+    if (vz.length === 21) { [vx, vz] = [vz, vx]; }
+
+    // Pick rating once for the run (C64 lines 1780–1810)
+    const ratings = ['PG', 'PG-13', 'R'];
+    const rating = ratings[Math.trunc(Math.random() * 3)];
+
+    function printSneakPreviewHeader(week?: number): void {
+        print('MAJOR STUDIO SNEAK PREVIEW', 'bright', 'bold', 'center');
+        print('of', 'center');
+        print(movie.title, 'bright', 'bold', 'center');
+        printBlank();
+        print('starring', 'center');
+        print(vx, 'bright', 'center');
+        print(`${vy} & ${vz}`, 'center');
+        printBlank();
+        print(`Rated ${rating}`, 'dim', 'center');
+        printBlank();
+        if (week !== undefined) {
+            print(`WEEK ${week}`, 'bright', 'bold', 'center');
+        }
+    }
+
+    printSneakPreviewHeader();
     await pressAnyKey();
 
     const { mq } = calculateQualityScore(
@@ -226,17 +259,16 @@ async function phaseRelease(state: GameState): Promise<void> {
     state.totalGross  = totalGross;
 
     for (let wk = 0; wk < weeklyGross.length; wk++) {
-        print(`WEEK ${wk + 1}`, 'bright', 'center');
+        clearScreen();
+        printSneakPreviewHeader(wk + 1);
         print(`Weekly gross  - ${formatMoney(weeklyGross[wk])}`);
         const running = weeklyGross.slice(0, wk + 1).reduce((a, b) => a + b, 0);
         print(`Total gross   - ${formatMoney(running)}`);
         await pressAnyKey();
     }
 
-    const names = state.cast.map(cr =>
-        cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name
-    );
-    print(pullFromTheatersLine(movie.title, names, weeklyGross.length));
+    clearScreen();
+    print(pullFromTheatersLine(movie.title, [vx, vy, vz], weeklyGross.length));
     printBlank();
     print(`Subtotal: ${formatMoney(totalGross)}`);
     await pressAnyKey();
@@ -254,6 +286,7 @@ function pickPresenter(cast: GameState['cast']): string {
 }
 
 async function phaseAwards(state: GameState): Promise<void> {
+    clearScreen();
     state.phase = 'awards';
 
     // C64 lines 2315–2318: invitation screen
@@ -335,6 +368,7 @@ async function phaseAwards(state: GameState): Promise<void> {
 }
 
 async function phaseSummary(state: GameState): Promise<void> {
+    clearScreen();
     printHeading(state.selectedMovie!.title);
     print(`Total cost - ${formatMoney(state.totalCost)}`);
     print(`Total revenue - ${formatMoney(state.totalGross)}`);
@@ -379,7 +413,8 @@ function printHighScorePage(data: HighScoreData, page: 1 | 2): void {
     }
 }
 
-async function phaseHighScores(state: GameState): Promise<void> {
+async function phaseHighScores(state: GameState): Promise<boolean> {
+    clearScreen();
     state.phase = 'high-scores';
     const movie = state.selectedMovie!;
     const scores = calculateGameScores(state.totalGross, state.totalCost);
@@ -427,8 +462,8 @@ async function phaseHighScores(state: GameState): Promise<void> {
     while (true) {
         print('P)lay Again   V)iew other page   Q)uit', 'dim', 'center');
         const key = (await waitForKey()).toLowerCase();
-        if (key === 'p') { window.location.reload(); return; }
-        if (key === 'q') return;
+        if (key === 'p') return true;
+        if (key === 'q') return false;
         if (key === 'v') {
             page = page === 1 ? 2 : 1;
             printHighScorePage(data, page);
@@ -438,8 +473,6 @@ async function phaseHighScores(state: GameState): Promise<void> {
 }
 
 async function runGame(): Promise<void> {
-    const state = initialGameState();
-
     await showTitleScreen();
 
     print('MOVIE MOGUL', 'bright', 'bold', 'center');
@@ -450,16 +483,20 @@ async function runGame(): Promise<void> {
     printBlank();
     await pressAnyKey();
 
-    await phaseMovieSelection(state);
-    await pressAnyKey();
-    await phaseCasting(state);
-    await pressAnyKey();
-    await phaseBudget(state);
-    await phaseReviews(state);
-    await phaseRelease(state);
-    await phaseAwards(state);
-    await phaseSummary(state);
-    await phaseHighScores(state);
+    while (true) {
+        const state = initialGameState();
+        await phaseMovieSelection(state);
+        await pressAnyKey();
+        await phaseCasting(state);
+        await pressAnyKey();
+        await phaseBudget(state);
+        await phaseReviews(state);
+        await phaseRelease(state);
+        await phaseAwards(state);
+        await phaseSummary(state);
+        const playAgain = await phaseHighScores(state);
+        if (!playAgain) break;
+    }
 }
 
 runGame();
