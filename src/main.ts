@@ -14,7 +14,7 @@ import {
 } from './game/gameEngine';
 import { initialGameState } from './game/gameState';
 import type { GameState } from './game/gameState';
-import { reviewVerdict, budgetOverrun, pullFromTheatersLine, profitLossResult } from './game/phaseHelpers';
+import { reviewVerdict, budgetOverrun, pullFromTheatersLine, profitLossResult, productionEvent } from './game/phaseHelpers';
 import {
     calculateGameScores,
     qualifiesFor,
@@ -170,11 +170,26 @@ async function phaseBudget(state: GameState): Promise<void> {
     // Cap at budgetIdeal for scoring purposes (BASIC line 1540)
     const effectiveBudget = Math.min(budget, movie.budgetIdeal);
 
+    // Production events (BASIC lines 1560–1570) — happen before overrun
+    const castNames = state.cast.map(cr =>
+        cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name
+    );
+    const eventRoll = Math.trunc(Math.random() * 10) + 1;
+    const event = productionEvent(castNames[0], castNames[1], castNames[2], eventRoll);
+    let eventCostDelta = 0;
+    if (event) {
+        printBlank();
+        print(event.message, event.reviewDelta < 0 || event.costDelta > 0 ? 'red' : 'green');
+        state.reviewScore += event.reviewDelta;
+        eventCostDelta = event.costDelta;
+        await pressAnyKey();
+    }
+
     const { text: overrunText, overrun } = budgetOverrun(budget, Math.trunc(Math.random() * 100));
     print(overrunText, overrun > 0 ? 'red' : 'green');
 
     state.productionBudget = budget + overrun;
-    state.totalCost = state.salaryCost + state.productionBudget;
+    state.totalCost = state.salaryCost + eventCostDelta + state.productionBudget;
     printBlank();
     print(`Total cost: ${formatMoney(state.totalCost)}`);
     await pressAnyKey();
@@ -186,7 +201,8 @@ async function phaseBudget(state: GameState): Promise<void> {
 async function phaseReviews(state: GameState): Promise<void> {
     clearScreen();
     state.phase = 'reviews';
-    state.reviewScore = 3; // BASIC line 180
+    // reviewScore already initialized to 3 in initialGameState;
+    // production events may have already modified it — do not reset here.
 
     const reviewers = [
         'The NY Times',
@@ -209,7 +225,9 @@ async function phaseReviews(state: GameState): Promise<void> {
     }
 
     printBlank();
-    await pressAnyKey();
+    print('Press any key to release the movie', 'dim');
+    await waitForKey();
+    printBlank();
 }
 
 async function phaseRelease(state: GameState): Promise<void> {
