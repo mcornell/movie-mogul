@@ -6,7 +6,8 @@
         "dev": "vite",
         "build": "vite build",
         "test": "vitest",
-        "coverage": "vitest run --coverage"
+        "coverage": "vitest run --coverage",
+        "deploy": "npm run build && rsync -av --delete dist/ ../mcornell.dev/public/games/movie-mogul/"
     },
     "devDependencies": {
         "@vitest/coverage-v8": "^4.0.18",

@@ -498,6 +498,7 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
         if (key === 'q') return false;
         if (key === 'v') {
             page = page === 1 ? 2 : 1;
+            clearScreen();
             printHighScorePage(data, page);
             printBlank();
         }
@@ -529,6 +530,12 @@ async function runGame(): Promise<void> {
         const playAgain = await phaseHighScores(state);
         if (!playAgain) break;
     }
+
+    clearScreen();
+    printBlank();
+    print('Thanks for playing Movie Mogul!', 'bright', 'center');
+    printBlank();
+    print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
 }
 
 runGame();
