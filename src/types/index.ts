@@ -50,6 +50,14 @@ export interface CastSelection {
     pay: number; // in thousands (e.g. 150 = $150,000)
 }
 
+// A fully-resolved cast member: actor data + role index + pay.
+// Used in game logic calculations (box office, awards).
+export interface CastResult {
+    roleIndex: 0 | 1 | 2;
+    actor: Actor;
+    pay: number;
+}
+
 // The full state of a game session, organized by phase.
 export interface GameState {
     // Phase 1 — Movie selection
