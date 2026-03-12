@@ -560,6 +560,7 @@ async function runGame(): Promise<void> {
     print('Written by Anthony Chiang', 'dim', 'center');
     print('Converted to the C-64 by Alan Gardner', 'dim', 'center');
     print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
+    print(`v${__APP_VERSION__}`, 'dim', 'center');
     printBlank();
     await pressAnyKey();
 

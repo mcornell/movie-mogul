@@ -5,6 +5,7 @@ import {
     insertEntry,
     buildInitials,
     emptyHighScores,
+    defaultHighScores,
 } from './highScores';
 import type { HighScoreEntry, HighScoreData } from './highScores';
 
@@ -132,5 +133,49 @@ describe('buildInitials', () => {
         const d = data();
         d.biggestBomb = [{ movieTitle: 'SPACE WARS', initials: 'MCG', score: 100 }];
         expect(buildInitials('SPACE WARS', 'MCG', d)).toBe('MCGa');
+    });
+});
+
+// ── defaultHighScores ─────────────────────────────────────────────────────────
+
+describe('defaultHighScores', () => {
+    // Mirrors C64 reset mm.scores.prg:
+    //   for i=1to4: for j=1to5
+    //     print#2, "No Movie-" + chr$(64+i)   → "No Movie-A"..."No Movie-D"
+    //     print#2, "bo" + chr$(64+j)          → "boA"..."boE"
+    //     print#2, 0
+    //   next j: next i
+
+    it('each category has exactly 5 entries', () => {
+        const d = defaultHighScores();
+        expect(d.highestProfit.length).toBe(5);
+        expect(d.greatestRevenue.length).toBe(5);
+        expect(d.bestPctReturned.length).toBe(5);
+        expect(d.biggestBomb.length).toBe(5);
+    });
+
+    it('all entries have score 0', () => {
+        const d = defaultHighScores();
+        const all = [...d.highestProfit, ...d.greatestRevenue, ...d.bestPctReturned, ...d.biggestBomb];
+        expect(all.every(e => e.score === 0)).toBe(true);
+    });
+
+    it('initials cycle boA–boE within each category', () => {
+        const d = defaultHighScores();
+        expect(d.highestProfit.map(e => e.initials)).toEqual(['boA', 'boB', 'boC', 'boD', 'boE']);
+        expect(d.biggestBomb.map(e => e.initials)).toEqual(['boA', 'boB', 'boC', 'boD', 'boE']);
+    });
+
+    it('each category has a unique "No Movie-X" title (A–D)', () => {
+        const d = defaultHighScores();
+        expect(d.highestProfit[0].movieTitle).toBe('No Movie-A');
+        expect(d.greatestRevenue[0].movieTitle).toBe('No Movie-B');
+        expect(d.bestPctReturned[0].movieTitle).toBe('No Movie-C');
+        expect(d.biggestBomb[0].movieTitle).toBe('No Movie-D');
+    });
+
+    it('a positive score always beats a default entry (qualifiesFor)', () => {
+        const d = defaultHighScores();
+        expect(qualifiesFor(d.highestProfit, 1)).toBe(true);
     });
 });
