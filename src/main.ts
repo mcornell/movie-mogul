@@ -22,6 +22,7 @@ import {
     buildInitials,
     loadHighScores,
     saveHighScores,
+    defaultHighScores,
 } from './game/highScores';
 
 import type { HighScoreData, HighScoreEntry } from './game/highScores';
@@ -471,7 +472,7 @@ function printHighScorePage(data: HighScoreData, page: 1 | 2): void {
     if (page === 1) {
         print('HIGHEST PROFIT', 'bright', 'center');
         printBlank();
-        data.highestProfit.filter(e => e.score > 0).forEach(e => fmtEntry(e, formatMoney(e.score)));
+        data.highestProfit.forEach(e => fmtEntry(e, formatMoney(e.score)));
         printBlank();
         print('GREATEST REVENUES', 'bright', 'center');
         printBlank();
@@ -483,7 +484,7 @@ function printHighScorePage(data: HighScoreData, page: 1 | 2): void {
         printBlank();
         print('BIGGEST BOMBS', 'bright', 'center');
         printBlank();
-        data.biggestBomb.filter(e => e.score > 0).forEach(e => fmtEntry(e, formatMoney(e.score)));
+        data.biggestBomb.forEach(e => fmtEntry(e, formatMoney(e.score)));
     }
 
     if (cheatMode) {
@@ -553,6 +554,12 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
 }
 
 async function runGame(): Promise<void> {
+    // Seed localStorage with blank placeholder entries on first ever load,
+    // mirroring what reset mm.scores.prg does on the C64.
+    if (!localStorage.getItem('movieMogulHighScores')) {
+        saveHighScores(defaultHighScores());
+    }
+
     await showTitleScreen();
 
     print('MOVIE MOGUL', 'bright', 'bold', 'center');
