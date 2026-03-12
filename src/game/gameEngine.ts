@@ -205,8 +205,7 @@ export function checkOscarActress(
         if (cr.actor.gender !== 'F') continue;
         const prestige = movie.roles[cr.roleIndex].requirements[2];
         if (starPowerActor0 + prestige > x) {
-            const name = cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name;
-            return { winnerName: name, winnerMovie: movie.title, isPlayerWin: true, weight: 0.4 };
+            return { winnerName: cr.actor.name, winnerMovie: movie.title, isPlayerWin: true, weight: 0.4 };
         }
     }
 
