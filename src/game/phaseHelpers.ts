@@ -1,6 +1,62 @@
 // Pure helpers extracted from game phases so they can be unit-tested
 // independently of the DOM/renderer.
 
+// ── Phase 3: Production events ────────────────────────────────────────────────
+
+export interface ProductionEventResult {
+    message: string;
+    reviewDelta: number;  // change to reviewScore (0 if none)
+    costDelta: number;    // additional cost in thousands (0 if none)
+}
+
+/**
+ * Determine the production event for a given roll (1–10).
+ * Mirrors BASIC lines 1560–1570 and subroutines 3900–3970.
+ *
+ * roll 1–7  → one of 7 events (see below)
+ * roll 8–10 → no event (returns null)
+ *
+ * actor1/2/3 are the display names for the 3 cast members (role order).
+ */
+export function productionEvent(
+    actor1: string,
+    actor2: string,
+    actor3: string,
+    roll: number,
+): ProductionEventResult | null {
+    switch (roll) {
+        case 1: return {
+            message:     `${actor1} has been arrested for possesion of cocaine. The bad publicity could hurt the movie.`,
+            reviewDelta: -2, costDelta: 0,
+        };
+        case 2: return {
+            message:     `${actor2} is suing the National Enquirer. The publicity could be good for the movie.`,
+            reviewDelta: +3, costDelta: 0,
+        };
+        case 3: return {
+            message:     'A stunt man is killed while filming. The publicity could be bad.',
+            reviewDelta: -2, costDelta: 0,
+        };
+        case 4: return {
+            message:     `${actor3} is injured in a car accident. The delay will cost you $200,000.`,
+            reviewDelta: 0, costDelta: 200,
+        };
+        case 5: return {
+            message:     `${actor1} hates the director. Getting a new one will cost $450,000.`,
+            reviewDelta: 0, costDelta: 450,
+        };
+        case 6: return {
+            message:     `${actor2} has started dating a famous athlete. The publicity could be good for the movie.`,
+            reviewDelta: +2, costDelta: 0,
+        };
+        case 7: return {
+            message:     `${actor1} has just written an autobiography. The publicity could be good for the movie.`,
+            reviewDelta: +1, costDelta: 0,
+        };
+        default: return null;
+    }
+}
+
 // ── Phase 4: Reviews ──────────────────────────────────────────────────────────
 
 export interface ReviewVerdict {
@@ -57,7 +113,11 @@ export function budgetOverrun(budget: number, roll: number): OverrunResult {
  * Mirrors BASIC lines 2270–2280.
  */
 export function pullFromTheatersLine(title: string, castNames: string[], weeks: number): string {
-    return `"${title}" starring ${castNames.join(', ')} has been pulled from theaters after ${weeks} weeks.`;
+    // C64 line 2281: a1$ + ", " + a2$ + " and " + a3$
+    const names = castNames.length < 2
+        ? castNames[0] ?? ''
+        : `${castNames.slice(0, -1).join(', ')} and ${castNames[castNames.length - 1]}`;
+    return `"${title}" starring ${names} has been pulled from theaters after ${weeks} weeks.`;
 }
 
 // ── Phase 6: Summary ──────────────────────────────────────────────────────────

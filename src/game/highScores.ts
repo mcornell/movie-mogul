@@ -5,6 +5,7 @@ export interface HighScoreEntry {
     movieTitle: string;
     initials: string;   // 3 chars, or 4 if a suffix was added to disambiguate
     score: number;
+    cheat?: boolean;
 }
 
 export interface HighScoreData {

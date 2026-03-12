@@ -4,7 +4,83 @@ import {
     budgetOverrun,
     pullFromTheatersLine,
     profitLossResult,
+    productionEvent,
 } from './phaseHelpers';
+
+// ── productionEvent ───────────────────────────────────────────────────────────
+
+describe('productionEvent', () => {
+    const a1 = 'Stallone';
+    const a2 = 'Streep';
+    const a3 = 'Hanks';
+
+    it('roll 1 → actor1 cocaine arrest, reviewDelta -2', () => {
+        const r = productionEvent(a1, a2, a3, 1)!;
+        expect(r.message).toContain('Stallone');
+        expect(r.message).toContain('cocaine');
+        expect(r.reviewDelta).toBe(-2);
+        expect(r.costDelta).toBe(0);
+    });
+
+    it('roll 2 → actor2 suing Enquirer, reviewDelta +3', () => {
+        const r = productionEvent(a1, a2, a3, 2)!;
+        expect(r.message).toContain('Streep');
+        expect(r.message).toContain('Enquirer');
+        expect(r.reviewDelta).toBe(3);
+        expect(r.costDelta).toBe(0);
+    });
+
+    it('roll 3 → stunt death, reviewDelta -2', () => {
+        const r = productionEvent(a1, a2, a3, 3)!;
+        expect(r.message).toContain('stunt');
+        expect(r.reviewDelta).toBe(-2);
+        expect(r.costDelta).toBe(0);
+    });
+
+    it('roll 4 → actor3 car accident, costDelta +200', () => {
+        const r = productionEvent(a1, a2, a3, 4)!;
+        expect(r.message).toContain('Hanks');
+        expect(r.message).toContain('$200,000');
+        expect(r.reviewDelta).toBe(0);
+        expect(r.costDelta).toBe(200);
+    });
+
+    it('roll 5 → actor1 fires director, costDelta +450', () => {
+        const r = productionEvent(a1, a2, a3, 5)!;
+        expect(r.message).toContain('Stallone');
+        expect(r.message).toContain('$450,000');
+        expect(r.reviewDelta).toBe(0);
+        expect(r.costDelta).toBe(450);
+    });
+
+    it('roll 6 → actor2 dating athlete, reviewDelta +2', () => {
+        const r = productionEvent(a1, a2, a3, 6)!;
+        expect(r.message).toContain('Streep');
+        expect(r.message).toContain('athlete');
+        expect(r.reviewDelta).toBe(2);
+        expect(r.costDelta).toBe(0);
+    });
+
+    it('roll 7 → actor1 autobiography, reviewDelta +1', () => {
+        const r = productionEvent(a1, a2, a3, 7)!;
+        expect(r.message).toContain('Stallone');
+        expect(r.message).toContain('autobiography');
+        expect(r.reviewDelta).toBe(1);
+        expect(r.costDelta).toBe(0);
+    });
+
+    it('roll 8 → no event (null)', () => {
+        expect(productionEvent(a1, a2, a3, 8)).toBeNull();
+    });
+
+    it('roll 9 → no event (null)', () => {
+        expect(productionEvent(a1, a2, a3, 9)).toBeNull();
+    });
+
+    it('roll 10 → no event (null)', () => {
+        expect(productionEvent(a1, a2, a3, 10)).toBeNull();
+    });
+});
 
 // ── reviewVerdict ─────────────────────────────────────────────────────────────
 
@@ -106,9 +182,18 @@ describe('budgetOverrun', () => {
 // ── pullFromTheatersLine ──────────────────────────────────────────────────────
 
 describe('pullFromTheatersLine', () => {
-    it('formats the closing line with title, cast, and week count', () => {
+    it('joins 3 names as "A, B and C" (C64 line 2281)', () => {
         const line = pullFromTheatersLine('SPACE WARS', ['Ford', 'Fisher', 'Hamill'], 8);
-        expect(line).toBe('"SPACE WARS" starring Ford, Fisher, Hamill has been pulled from theaters after 8 weeks.');
+        expect(line).toBe('"SPACE WARS" starring Ford, Fisher and Hamill has been pulled from theaters after 8 weeks.');
+    });
+
+    it('joins 2 names as "A and B"', () => {
+        const line = pullFromTheatersLine('FILM', ['Ford', 'Fisher'], 3);
+        expect(line).toContain('Ford and Fisher');
+    });
+
+    it('handles a single name', () => {
+        expect(pullFromTheatersLine('BOMB', ['Actor'], 1)).toContain('starring Actor');
     });
 
     it('handles a single week', () => {

@@ -55,7 +55,11 @@ The game is plain TypeScript (no framework) rendered into a terminal-style `<div
 
 ## Development Technique
 
-When writing production code, write the unit test first and use test driven development to help drive out the low level design using both London and Detroit schools of TDD as appropriate
+When writing production code, write the unit test first and use test driven development to help drive out the low level design using both London and Detroit schools of TDD as appropriate.
+
+## Sources
+
+Please always provide sources when responding. That way I can look at the source of truth if I want to learn more details.
 
 ## Known Issues
 
