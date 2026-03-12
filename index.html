@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Mogul</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+
+<body>
+    <div id="terminal">
+        <div id="title-screen">
+            <img id="title-image" src="/images/title.png" alt="Movie Mogul title screen">
+            <div id="title-prompt">PRESS ANY KEY TO CONTINUE</div>
+        </div>
+        <div id="screen" class="hidden">
+            <div id="output"></div>
+            <div id="input-line">
+                <span id="prompt">&gt;&nbsp;</span>
+                <input id="text-input" type="text"
+                    autocomplete="off" autocorrect="off"
+                    autocapitalize="off" spellcheck="false"
+                    placeholder="tap to type">
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
