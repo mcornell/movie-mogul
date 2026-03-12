@@ -178,6 +178,13 @@ html, body {
     font-style: italic;
 }
 
+/* Hide "tap to type" hint on desktop (mouse/trackpad devices) */
+@media (hover: hover) and (pointer: fine) {
+    #text-input::placeholder {
+        color: transparent;
+    }
+}
+
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0; }

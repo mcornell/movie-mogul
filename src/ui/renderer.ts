@@ -73,7 +73,7 @@ export function waitForKey(): Promise<string> {
             window.removeEventListener('keydown', onKey);
             resolve(key);
         };
-        const onKey = (e: KeyboardEvent) => finish(e.key);
+        const onKey = (e: KeyboardEvent) => { e.preventDefault(); finish(e.key); };
         window.addEventListener('keydown', onKey);
 
         // Delay tap listener so we don't immediately catch the pointerup
