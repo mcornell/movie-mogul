@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   base: '/games/movie-mogul/',
@@ -8,5 +8,8 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+  },
+  test: {
+    exclude: ['e2e/**', '.features-gen/**', 'node_modules/**'],
   },
 });

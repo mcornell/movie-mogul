@@ -62,7 +62,7 @@ export function pickActorPool(allActors: Actor[], rng: () => number): Actor[] {
  */
 export function calculatePay(actor: Actor, rng: () => number): number {
     const x = int(rng() * 300) + 31;                     // multiplier 31–330
-    let py  = int((actor.stats[1] / 2 + actor.stats[2]) * x);
+    let py  = int(actor.stats[1] / 2 + actor.stats[2]) * x; // INT truncates base before multiply (BASIC line 3800)
     if (py < 100) py += 100;
     return py;
 }

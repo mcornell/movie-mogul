@@ -44,6 +44,7 @@ export interface Movie {
 }
 
 // An actor the player has cast in a specific role, with their negotiated pay.
+// Note: actor pool draws 12 actors total — 4–8 male (IDs 1–76), remainder female (IDs 77–140).
 export interface CastSelection {
     roleIndex: 0 | 1 | 2; // which of the 3 roles
     actorId: number;
@@ -58,15 +59,4 @@ export interface CastResult {
     pay: number;
 }
 
-// The full state of a game session, organized by phase.
-export interface GameState {
-    // Phase 1 — Movie selection
-    // 3 random movies are drawn from the 12 available; player picks one.
-    movieChoices: [Movie, Movie, Movie] | null;
-    selectedMovie: Movie | null;
-
-    // Phase 2 — Casting
-    // 12 random actors are drawn (4–10 men, remainder women) for the player to cast.
-    availableActors: Actor[];
-    castSelections: CastSelection[];
-}
+// GameState is defined in src/game/gameState.ts, which is the authoritative source.

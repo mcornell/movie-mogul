@@ -129,6 +129,9 @@ describe('reviewVerdict', () => {
 // ── budgetOverrun ─────────────────────────────────────────────────────────────
 
 describe('budgetOverrun', () => {
+    // BASIC lines 1580–1650: x = int(rnd(1)*100)+1 → range 1–100 (1-based)
+    // TS roll = int(rnd()*100) → range 0–99 (0-based); same distribution, offset by 1
+    // Thresholds below are 0-based equivalents of the BASIC 1-based conditions.
     const budget = 10000; // $10M in thousands
 
     it('roll 0 → 30% overrun', () => {
@@ -157,14 +160,32 @@ describe('budgetOverrun', () => {
         expect(r.text).toContain('10%');
     });
 
-    it('roll 15 → 2% overrun', () => {
+    it('roll 14 → 10% overrun (boundary)', () => {
+        expect(budgetOverrun(budget, 14).overrun).toBe(1000);
+    });
+
+    it('roll 15 → 5% overrun (BASIC line 1610)', () => {
         const r = budgetOverrun(budget, 15);
+        expect(r.overrun).toBe(500);
+        expect(r.text).toContain('5%');
+    });
+
+    it('roll 29 → 5% overrun (boundary)', () => {
+        expect(budgetOverrun(budget, 29).overrun).toBe(500);
+    });
+
+    it('roll 30 → 2% overrun (BASIC line 1600)', () => {
+        const r = budgetOverrun(budget, 30);
         expect(r.overrun).toBe(200);
         expect(r.text).toContain('2%');
     });
 
-    it('roll 30 → on budget (0 overrun)', () => {
-        const r = budgetOverrun(budget, 30);
+    it('roll 69 → 2% overrun (boundary)', () => {
+        expect(budgetOverrun(budget, 69).overrun).toBe(200);
+    });
+
+    it('roll 70 → on budget (BASIC line 1590)', () => {
+        const r = budgetOverrun(budget, 70);
         expect(r.overrun).toBe(0);
         expect(r.text).toContain('on budget');
     });
