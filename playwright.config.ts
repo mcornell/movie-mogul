@@ -12,10 +12,16 @@ export default defineConfig({
     timeout: 120_000,       // full game with award sleeps can take ~30s
     expect: { timeout: 30_000 },
     forbidOnly: !!process.env.CI,
-    reporter: 'list',
+    reporter: [
+        ['list'],
+        ['html', { outputFolder: 'test-results/html', open: 'never' }],
+        ['junit', { outputFile: 'test-results/junit.xml' }],
+    ],
     use: {
         baseURL: 'http://localhost:3000',
         headless: true,
+        screenshot: 'only-on-failure',
+        video: 'off',
     },
     webServer: {
         command: 'npm run dev',
