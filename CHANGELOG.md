@@ -23,7 +23,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - **Default high score entries**: leaderboard now pre-populates with "No Movie-A/B/C/D" /
   "boA–boE" / 0 placeholder entries when no scores are stored, matching the C64
-  `reset mm.scores.prg` behaviour.
+  `reset mm.scores.prg` behaviour. Defaults are written to `localStorage` on first
+  game load; Highest Profit and Biggest Bombs no longer show blank boards.
 - **Version display**: game version shown in the credits screen, sourced from `package.json`
   at build time via Vite's `define`.
 - **Firefox browser support** in the Playwright E2E test suite (desktop-firefox project).
