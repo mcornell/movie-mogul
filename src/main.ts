@@ -23,7 +23,8 @@ import {
     loadHighScores,
     saveHighScores,
 } from './game/highScores';
-import type { HighScoreData } from './game/highScores';
+
+import type { HighScoreData, HighScoreEntry } from './game/highScores';
 import {
     print,
     printBlank,
@@ -37,6 +38,23 @@ import {
     formatMoney,
     sleep,
 } from './ui/renderer';
+
+// ── Cheat mode ────────────────────────────────────────────────────────────────
+
+const params = new URLSearchParams(window.location.search);
+const cheatMode = params.has('cheat');
+
+// Seeded RNG for deterministic E2E testing — inject via ?seed=N
+const seedParam = params.get('seed');
+if (seedParam !== null) {
+    const seed = parseInt(seedParam, 10);
+    let s = (isNaN(seed) ? 0 : seed) >>> 0;
+    Math.random = () => {
+        s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+        return s / 0x100000000;
+    };
+}
+
 
 // ── Title screen ──────────────────────────────────────────────────────────────
 
@@ -87,19 +105,50 @@ async function phaseCasting(state: GameState): Promise<void> {
     state.phase = 'casting';
 
     printHeading(`Casting Call for "${movie.title}"`);
+    if (cheatMode) print('★ CHEAT MODE ACTIVE ★', 'bright', 'center');
     print('Please wait...', 'dim');
 
     state.actorPool = pickActorPool(actors, Math.random);
     state.actorPays = state.actorPool.map(a => calculatePay(a, Math.random));
 
     printBlank();
-    print('      NAME                      PAY', 'bright');
+    if (cheatMode) {
+        movie.roles.forEach((role, i) => print(`  R${i + 1} = ${role.name}`, 'dim'));
+        printBlank();
+    }
+    const PAY_WIDTH = 14; // wide enough for $10,000,000
+    const COL_WIDTH = 6;
+    const actorHeader = '  ' + 'NAME'.padEnd(26) + 'PAY'.padStart(PAY_WIDTH)
+        + (cheatMode ? 'R1'.padStart(COL_WIDTH) + 'R2'.padStart(COL_WIDTH) + 'R3'.padStart(COL_WIDTH) : '');
+    print(actorHeader, 'bright');
     printBlank();
 
     state.actorPool.forEach((actor, i) => {
         const num = String(i + 1).padStart(2);
-        const pay = formatMoney(state.actorPays[i]);
-        print(`${num}) ${actor.name.padEnd(24)} ${pay}`);
+        const pay = formatMoney(state.actorPays[i]).padStart(PAY_WIDTH);
+        let line = `${num}) ${actor.name.padEnd(24)} ${pay}`;
+        if (cheatMode) {
+            for (const role of movie.roles) {
+                const genderCode = role.requirements[0];
+                const genderOk =
+                    genderCode === 5 ||
+                    (genderCode === 1 && actor.gender === 'M') ||
+                    (genderCode === 9 && actor.gender === 'F');
+                let cell: string;
+                if (!genderOk) {
+                    cell = 'X';
+                } else {
+                    let deficit = 0;
+                    for (let si = 2; si <= 7; si++) {
+                        const diff = actor.stats[si - 1] - role.requirements[si];
+                        if (diff < 0) deficit += diff;
+                    }
+                    cell = deficit === 0 ? '✓' : String(deficit);
+                }
+                line += cell.padStart(COL_WIDTH);
+            }
+        }
+        print(line);
     });
 
     printBlank();
@@ -335,13 +384,11 @@ async function phaseAwards(state: GameState): Promise<void> {
     // ── Best Actress (C64 lines 2350–2361) ───────────────────────────────────
     // C64: delay loop before reveal (fordl=1to500:nextdl), no keypress between awards
     clearScreen();
-    print('Welcome to the annual Academy');
-    print('Awards presentation.');
+    print('Welcome to the annual Academy Awards presentation.');
     printBlank();
     print(`Here to present the first award is ${pickPresenter(state.cast)}`);
     printBlank();
-    print('The winner of the Oscar for Best');
-    print('Actress is...');
+    print('The winner of the Oscar for Best Actress is...');
     await sleep(1500);
 
     const actressResult = checkOscarActress(movie, state.cast, actors, movies, Math.random);
@@ -356,8 +403,7 @@ async function phaseAwards(state: GameState): Promise<void> {
     clearScreen();
     print(`Here to present the next Oscar is ${pickPresenter(state.cast)}`);
     printBlank();
-    print('The winner of the Oscar for Best');
-    print('Actor is...');
+    print('The winner of the Oscar for Best Actor is...');
     await sleep(1500);
 
     const actorResult = checkOscarActor(movie, state.cast, actors, movies, Math.random);
@@ -386,8 +432,7 @@ async function phaseAwards(state: GameState): Promise<void> {
     await sleep(2500);
     clearScreen();
     if (w > 0) {
-        print('Because of the Oscars, your movie');
-        print('will be re-released.');
+        print('Because of the Oscars, your movie will be re-released.');
         const bonus = calculateReRelease(state.totalGross, w, Math.random);
         state.reReleaseGross = bonus;
         state.totalGross += bonus;
@@ -418,30 +463,32 @@ async function phaseSummary(state: GameState): Promise<void> {
 function printHighScorePage(data: HighScoreData, page: 1 | 2): void {
     printHeading('HIGH SCORES');
 
+    const fmtEntry = (e: HighScoreEntry, scoreStr: string) => {
+        const flag = e.cheat ? '*' : ' ';
+        print(`${e.movieTitle.padEnd(21)}${(e.initials + flag).padEnd(6)}${scoreStr}`);
+    };
+
     if (page === 1) {
         print('HIGHEST PROFIT', 'bright', 'center');
         printBlank();
-        data.highestProfit.forEach(e => {
-            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${formatMoney(e.score)}`);
-        });
+        data.highestProfit.filter(e => e.score > 0).forEach(e => fmtEntry(e, formatMoney(e.score)));
         printBlank();
         print('GREATEST REVENUES', 'bright', 'center');
         printBlank();
-        data.greatestRevenue.forEach(e => {
-            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${formatMoney(e.score)}`);
-        });
+        data.greatestRevenue.forEach(e => fmtEntry(e, formatMoney(e.score)));
     } else {
         print('BEST PERCENTAGE RETURNED', 'bright', 'center');
         printBlank();
-        data.bestPctReturned.forEach(e => {
-            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${e.score}%`);
-        });
+        data.bestPctReturned.forEach(e => fmtEntry(e, `${e.score}%`));
         printBlank();
         print('BIGGEST BOMBS', 'bright', 'center');
         printBlank();
-        data.biggestBomb.forEach(e => {
-            print(`${e.movieTitle.padEnd(21)}${e.initials.padEnd(5)}${formatMoney(e.score)}`);
-        });
+        data.biggestBomb.filter(e => e.score > 0).forEach(e => fmtEntry(e, formatMoney(e.score)));
+    }
+
+    if (cheatMode) {
+        printBlank();
+        print('* score achieved with cheat mode enabled', 'dim');
     }
 }
 
@@ -453,10 +500,10 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
 
     let data = loadHighScores();
     const qualifies =
-        qualifiesFor(data.highestProfit,   scores.profit)      ||
+        (scores.profit > 0 && qualifiesFor(data.highestProfit, scores.profit)) ||
         qualifiesFor(data.greatestRevenue, scores.revenue)     ||
         qualifiesFor(data.bestPctReturned, scores.pctReturned) ||
-        qualifiesFor(data.biggestBomb,     scores.bomb);
+        (scores.bomb > 0 && qualifiesFor(data.biggestBomb, scores.bomb));
 
     // Show score (C64 lines 10300–10360)
     printBlank();
@@ -469,18 +516,18 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
         // Prompt for initials (C64 lines 10400–10499)
         let raw = '';
         while (!raw) {
-            raw = (await readLine('Enter your initials')).trim().toUpperCase().slice(0, 3);
+            raw = (await readLine('Enter your initials (3 chars)', 3)).trim().toUpperCase();
         }
         const initials = buildInitials(movie.title, raw, data);
-        const mkEntry = (score: number) => ({ movieTitle: movie.title, initials, score });
+        const mkEntry = (score: number) => ({ movieTitle: movie.title, initials, score, cheat: cheatMode || undefined });
 
-        if (qualifiesFor(data.highestProfit,   scores.profit))
+        if (scores.profit > 0 && qualifiesFor(data.highestProfit, scores.profit))
             data.highestProfit   = insertEntry(data.highestProfit,   mkEntry(scores.profit));
         if (qualifiesFor(data.greatestRevenue, scores.revenue))
             data.greatestRevenue = insertEntry(data.greatestRevenue, mkEntry(scores.revenue));
         if (qualifiesFor(data.bestPctReturned, scores.pctReturned))
             data.bestPctReturned = insertEntry(data.bestPctReturned, mkEntry(scores.pctReturned));
-        if (qualifiesFor(data.biggestBomb,     scores.bomb))
+        if (scores.bomb > 0 && qualifiesFor(data.biggestBomb, scores.bomb))
             data.biggestBomb     = insertEntry(data.biggestBomb,     mkEntry(scores.bomb));
 
         saveHighScores(data);

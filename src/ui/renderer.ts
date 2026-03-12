@@ -5,6 +5,21 @@ type CssClass = 'dim' | 'bright' | 'green' | 'red' | 'center' | 'bold';
 
 const output = document.getElementById('output')!;
 const inputPrompt = document.getElementById('prompt')!;
+const textInput = document.getElementById('text-input') as HTMLInputElement;
+
+// On mobile, tapping the screen focuses the input (pops keyboard) when readLine is waiting.
+let readLineActive = false;
+document.getElementById('screen')!.addEventListener('touchstart', () => {
+    if (readLineActive) textInput.focus();
+}, { passive: true });
+
+// When the virtual keyboard appears/disappears, shrink the screen to the
+// visible area so the input line is never hidden behind the keyboard.
+const screenEl = document.getElementById('screen')!;
+window.visualViewport?.addEventListener('resize', () => {
+    screenEl.style.height = `${window.visualViewport!.height}px`;
+    output.scrollTop = output.scrollHeight;
+});
 
 // ── Output ────────────────────────────────────────────────────────────────────
 
@@ -48,38 +63,56 @@ export function printHeading(text: string): void {
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 
-/** Wait for a single keypress and return the key string. */
+/** Wait for a single keypress or screen tap and return the key string. */
 export function waitForKey(): Promise<string> {
     return new Promise(resolve => {
-        window.addEventListener('keydown', e => resolve(e.key), { once: true });
+        let done = false;
+        const finish = (key: string) => {
+            if (done) return;
+            done = true;
+            window.removeEventListener('keydown', onKey);
+            resolve(key);
+        };
+        const onKey = (e: KeyboardEvent) => finish(e.key);
+        window.addEventListener('keydown', onKey);
+
+        // Delay tap listener so we don't immediately catch the pointerup
+        // from the interaction that triggered this waitForKey call.
+        setTimeout(() => {
+            if (done) return;
+            const onTap = () => finish('');
+            document.addEventListener('pointerup', onTap, { once: true });
+        }, 300);
     });
 }
 
-/** Show a prompt and collect a line of text input, echoing each character. */
-export function readLine(promptText: string): Promise<string> {
+/** Show a prompt and collect a line of text input. */
+export function readLine(promptText: string, maxLength = Infinity): Promise<string> {
     return new Promise(resolve => {
         inputPrompt.textContent = promptText + ' ';
-        let value = '';
-
-        const cursor = document.getElementById('cursor')!;
-        cursor.textContent = '█';
-
-        function onKey(e: KeyboardEvent): void {
-            if (e.key === 'Enter') {
-                window.removeEventListener('keydown', onKey);
-                print(promptText + ' ' + value);
-                inputPrompt.textContent = '> ';
-                cursor.textContent = '█';
-                resolve(value);
-                return;
-            }
-            if (e.key === 'Backspace') {
-                value = value.slice(0, -1);
-            } else if (e.key.length === 1) {
-                value += e.key;
-            }
-            cursor.textContent = value + '█';
+        textInput.value = '';
+        if (isFinite(maxLength)) {
+            textInput.maxLength = maxLength;
+        } else {
+            textInput.removeAttribute('maxlength');
         }
+        readLineActive = true;
+        textInput.focus(); // works on Android; iOS requires user tap (see touchstart handler)
+
+        let submitted = false;
+        const submit = () => {
+            if (submitted) return;
+            submitted = true;
+            readLineActive = false;
+            window.removeEventListener('keydown', onKey);
+            const value = textInput.value;
+            print(promptText + ' ' + value);
+            inputPrompt.textContent = '> ';
+            textInput.value = '';
+            resolve(value);
+        };
+
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
 
         window.addEventListener('keydown', onKey);
     });
