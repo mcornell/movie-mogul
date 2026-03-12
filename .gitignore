@@ -26,6 +26,9 @@ nbdist/
 ### Node ###
 node_modules/
 
+### Local config ###
+.env.local
+
 ### Test stuff ###
 coverage/
 test-results/

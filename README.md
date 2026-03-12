@@ -17,6 +17,16 @@ npm run dev      # start dev server at http://localhost:3000
 npm run build    # production build
 npm run test     # unit tests (Vitest, watch mode)
 npx vitest run   # unit tests (CI-style, single run)
+npm run deploy   # build and rsync to deploy target (see below)
+```
+
+### Deploy target
+
+Copy `.env.local.example` to `.env.local` and set `DEPLOY_TARGET` to your rsync destination. If not set, `npm run deploy` will prompt you each time.
+
+```bash
+cp .env.local.example .env.local
+# edit .env.local and set DEPLOY_TARGET
 ```
 
 ## E2E Tests (Playwright)
