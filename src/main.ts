@@ -567,127 +567,67 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
 // ── Help screen ───────────────────────────────────────────────────────────────
 // Text verbatim from c64/t.movie mogul.prg (LoadStar magazine article, 1985).
 
-const HELP_PAGES: { heading: string; lines: string[] }[] = [
+const HELP_PAGES: { heading: string; paragraphs: string[] }[] = [
     {
         heading: 'MOVIE MOGUL',
-        lines: [
-            'MOVIE MOGUL sets you up as a big cheese producer.',
-            'The resources of Hollywood are at your disposal.',
-            'Name stars are clamoring to do your pictures.',
-            'Scripts are flooding in.',
-            '',
-            'What will you do? Which script will benefit from',
-            'your magic touch? Which stars will you employ?',
-            'How much money will you spend?',
-            '',
-            'Will your pic have legs or be N.S.G. (not so good,',
-            'as they say in Daily Variety). Was your casting',
-            'astute enough to capture some Academy Awards?',
-            '',
-            'Here\'s your big chance to find out. As they say',
-            'in the biz, BREAK A LEG.',
+        paragraphs: [
+            'MOVIE MOGUL sets you up as a big cheese producer. The resources of Hollywood are at your disposal. Name stars are clamoring to do your pictures. Scripts are flooding in.',
+            'What will you do? Which script will benefit from your magic touch? Which stars will you employ? How much money will you spend?',
+            "Will your pic have legs or be N.S.G. (not so good, as they say in Daily Variety). Was your casting astute enough to capture some Academy Awards?",
+            "Here's your big chance to find out. As they say in the biz, BREAK A LEG.",
         ],
     },
     {
         heading: 'SCRIPT',
-        lines: [
-            'At the beginning of the game, you will be handed',
-            'the scripts to three different movies. Read the',
-            'descriptions carefully and decide which of the',
-            'three you want to produce.',
+        paragraphs: [
+            'At the beginning of the game, you will be handed the scripts to three different movies. Read the descriptions carefully and decide which of the three you want to produce.',
         ],
     },
     {
         heading: 'CASTING',
-        lines: [
-            'After selecting a script, you must hire actors to',
-            'star in your film. A list of twelve available',
-            'actors and actresses and their salary demands will',
-            'appear on the screen. You may hire only three.',
-            '',
-            'Consider how well an actor is suited for the part.',
-            'Talent is important, especially during Oscar time.',
-            'A big star demands a big salary but attracts a big',
-            'audience.',
-            '',
-            'Some parts are restricted by sex while others',
-            'aren\'t. Experiment to see which roles can be',
-            'portrayed by either an actor or an actress.',
+        paragraphs: [
+            'After selecting a script, you must hire actors to star in your film. A list of twelve available actors and actresses and their salary demands will appear on the screen. You may hire only three.',
+            'Consider how well an actor is suited for the part. Talent is important, especially during Oscar time. A big star demands a big salary but attracts a big audience.',
+            "Some parts are restricted by sex while others aren't. Experiment to see which roles can be portrayed by either an actor or an actress.",
         ],
     },
     {
         heading: 'PRODUCTION COST',
-        lines: [
-            'Decide how much you want to spend making your',
-            'movie. The money you allot directly reflects its',
-            'quality.',
-            '',
-            'A high-quality picture will normally outperform a',
-            'cheap, low-budget movie. However, a small movie',
-            'can make a huge profit and a big film can turn',
-            'into an expensive failure.',
-            '',
-            'Total cost = production budget + star salaries',
-            '             + any cost overruns.',
+        paragraphs: [
+            'Decide how much you want to spend making your movie. The money you allot directly reflects its quality.',
+            'A high-quality picture will normally outperform a cheap, low-budget movie. However, a small movie can make a huge profit and a big film can turn into an expensive failure.',
+            'Total cost = production budget + star salaries + any cost overruns.',
         ],
     },
     {
         heading: 'REVIEWS',
-        lines: [
-            'After your film is shot and before it is released',
-            'to the public, there will be a special screening',
-            'for the critics.',
-            '',
-            'What the critics say may affect your film\'s',
-            'popularity at the box office. Unfortunately, you',
-            'have no control over them, so just read \'em',
-            'and weep.',
+        paragraphs: [
+            'After your film is shot and before it is released to the public, there will be a special screening for the critics.',
+            "What the critics say may affect your film's popularity at the box office. Unfortunately, you have no control over them, so just read 'em and weep.",
         ],
     },
     {
         heading: 'BOX OFFICE',
-        lines: [
-            'Your picture is now ready for wide release. You',
-            'will see a weekly total and a running grand total',
-            'of revenues.',
-            '',
-            'Some films will have \'legs\' and their weekly take',
-            'will drop very slowly. Others may have a big',
-            'opening week, then fade away quickly.',
-            '',
-            'The smallest a film can generate is $200,000.',
-            'If that is all it has made, you have what we in',
-            'the biz call a \'bomb\'.',
+        paragraphs: [
+            'Your picture is now ready for wide release. You will see a weekly total and a running grand total of revenues.',
+            "Some films will have 'legs' and their weekly take will drop very slowly. Others may have a big opening week, then fade away quickly.",
+            "The smallest a film can generate is $200,000. If that is all it has made, you have what we in the biz call a 'bomb'.",
         ],
     },
     {
         heading: 'ACADEMY AWARDS',
-        lines: [
-            'No matter how poorly your film did, it will have',
-            'a chance to win an Academy Award.',
-            '',
-            'Taking home an Oscar means an opportunity to',
-            're-release your movie. The revenue from a',
-            're-release could be the difference between making',
-            'and losing money.',
+        paragraphs: [
+            'No matter how poorly your film did, it will have a chance to win an Academy Award.',
+            "Taking home an Oscar means an opportunity to re-release your movie. The revenue from a re-release could be the difference between making and losing money.",
         ],
     },
     {
         heading: 'HIGH SCORES',
-        lines: [
-            'At the end of the game you will be told how much',
-            'you made or lost. If you did exceptionally well,',
-            'you and your film will enter the high score list.',
-            '',
-            'A really poor performance will give you the',
-            'dishonorable distinction of making the low score',
-            'list.',
-            '',
-            'When identical movie titles appear with the same',
-            'initials, a marker is added to distinguish them.',
-            '',
-            'To reset the leaderboard, press R on the high',
-            'score screen.',
+        paragraphs: [
+            'At the end of the game you will be told how much you made or lost. If you did exceptionally well, you and your film will enter the high score list.',
+            'A really poor performance will give you the dishonorable distinction of making the low score list.',
+            'When identical movie titles appear with the same initials, a marker is added to distinguish them.',
+            'To reset the leaderboard, press R on the high score screen.',
         ],
     },
 ];
@@ -700,11 +640,10 @@ async function showHelp(): Promise<void> {
         printBlank();
         print(page.heading, 'bright', 'center');
         printBlank();
-        for (const line of page.lines) {
-            if (line === '') printBlank();
-            else print(line);
+        for (const para of page.paragraphs) {
+            print(para);
+            printBlank();
         }
-        printBlank();
         const isLast = i === HELP_PAGES.length - 1;
         print(isLast ? 'Press any key to return' : 'Press any key for next page', 'dim', 'center');
         await waitForKey();
