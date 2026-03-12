@@ -7,9 +7,10 @@
         "build": "vite build",
         "test": "vitest",
         "coverage": "vitest run --coverage",
-        "test:e2e": "bddgen && playwright test",
-        "test:e2e:ui": "bddgen && playwright test --ui",
-        "test:e2e:headed": "bddgen && playwright test --headed",
+        "install:browsers": "playwright install chromium webkit firefox",
+        "test:e2e": "npm run install:browsers && bddgen && playwright test",
+        "test:e2e:ui": "npm run install:browsers && bddgen && playwright test --ui",
+        "test:e2e:headed": "npm run install:browsers && bddgen && playwright test --headed",
         "deploy": "npm run build && rsync -av --delete dist/ ../mcornell.dev/public/games/movie-mogul/"
     },
     "devDependencies": {

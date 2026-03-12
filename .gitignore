@@ -29,6 +29,7 @@ node_modules/
 ### Test stuff ###
 coverage/
 test-results/
+playwright-report/
 .last-run.json
 .features-gen/
 

@@ -14,7 +14,7 @@ export default defineConfig({
     forbidOnly: !!process.env.CI,
     reporter: [
         ['list'],
-        ['html', { outputFolder: 'test-results/html', open: 'never' }],
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
         ['junit', { outputFile: 'test-results/junit.xml' }],
     ],
     use: {
@@ -29,6 +29,10 @@ export default defineConfig({
         reuseExistingServer: !process.env.CI,
     },
     projects: [
-        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'desktop-chrome',  use: { ...devices['Desktop Chrome'] } },
+        { name: 'desktop-firefox', use: { ...devices['Desktop Firefox'] } },
+        // iOS uses WebKit; Android uses Chromium with a Pixel 7 device profile.
+        { name: 'mobile-ios',      use: { ...devices['iPhone 15'] } },
+        { name: 'mobile-android',  use: { ...devices['Pixel 7'],    browserName: 'chromium' } },
     ],
 });
