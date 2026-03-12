@@ -27,6 +27,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   game load; Highest Profit and Biggest Bombs no longer show blank boards.
 - **Version display**: game version shown in the credits screen, sourced from `package.json`
   at build time via Vite's `define`.
+- **Help/instructions screen**: press H on the title screen to page through the original
+  LoadStar magazine manual (8 sections: intro, script, casting, production cost, reviews,
+  box office, Academy Awards, high scores).
+- **High score reset**: press R on the high score screen; confirms with Y/N before wiping
+  the leaderboard back to blank placeholder entries.
+- **Duplicate cast error**: casting now distinguishes "That actor is already cast in another
+  role." from a plain out-of-range "Invalid selection." message.
+- **Arnold Schwarzenegger full name**: stored directly in `actors.ts`; removed all runtime
+  name-concatenation special-cases from game code.
+- **`actors.ts` column alignment**: all 140 actor rows now align on `gender`/`stats` columns.
 - **Firefox browser support** in the Playwright E2E test suite (desktop-firefox project).
 - **C64 source file inventory**: all files in `c64/` documented in `CLAUDE.md` with
   D64 provenance noted.

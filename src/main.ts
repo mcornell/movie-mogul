@@ -163,8 +163,12 @@ async function phaseCasting(state: GameState): Promise<void> {
         while (poolIdx === -1) {
             const input = await readLine(`Who will you cast as the ${role.name}?`);
             const n = parseInt(input, 10);
-            if (n < 1 || n > 12 || pickedPoolIndices.includes(n - 1)) {
+            if (isNaN(n) || n < 1 || n > 12) {
                 print('Invalid selection.', 'red');
+                continue;
+            }
+            if (pickedPoolIndices.includes(n - 1)) {
+                print('That actor is already cast in another role.', 'red');
                 continue;
             }
             const candidate = state.actorPool[n - 1];
@@ -184,9 +188,7 @@ async function phaseCasting(state: GameState): Promise<void> {
         pickedPoolIndices.push(poolIdx);
         const actor = state.actorPool[poolIdx];
 
-        // Reconstruct full name for Schwarzenegger (BASIC lines 1492–1494)
-        const displayName = actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : actor.name;
-        print(displayName, 'bright');
+        print(actor.name, 'bright');
 
         state.cast.push({ roleIndex: roleIdx, actor, pay: state.actorPays[poolIdx] });
     }
@@ -222,9 +224,7 @@ async function phaseBudget(state: GameState): Promise<void> {
     const effectiveBudget = Math.min(budget, movie.budgetIdeal);
 
     // Production events (BASIC lines 1560–1570) — happen before overrun
-    const castNames = state.cast.map(cr =>
-        cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name
-    );
+    const castNames = state.cast.map(cr => cr.actor.name);
     const eventRoll = Math.trunc(Math.random() * 10) + 1;
     const event = productionEvent(castNames[0], castNames[1], castNames[2], eventRoll);
     let eventCostDelta = 0;
@@ -540,7 +540,7 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
     printBlank();
 
     while (true) {
-        print('P)lay Again   V)iew other page   Q)uit', 'dim', 'center');
+        print('P)lay Again   V)iew other page   R)eset scores   Q)uit', 'dim', 'center');
         const key = (await waitForKey()).toLowerCase();
         if (key === 'p') return true;
         if (key === 'q') return false;
@@ -550,6 +550,164 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
             printHighScorePage(data, page);
             printBlank();
         }
+        if (key === 'r') {
+            print('Reset all high scores? Y)es   N)o', 'red', 'center');
+            const confirm = (await waitForKey()).toLowerCase();
+            if (confirm === 'y') {
+                data = defaultHighScores();
+                saveHighScores(data);
+                clearScreen();
+                printHighScorePage(data, page);
+                printBlank();
+            }
+        }
+    }
+}
+
+// ── Help screen ───────────────────────────────────────────────────────────────
+// Text verbatim from c64/t.movie mogul.prg (LoadStar magazine article, 1985).
+
+const HELP_PAGES: { heading: string; lines: string[] }[] = [
+    {
+        heading: 'MOVIE MOGUL',
+        lines: [
+            'MOVIE MOGUL sets you up as a big cheese producer.',
+            'The resources of Hollywood are at your disposal.',
+            'Name stars are clamoring to do your pictures.',
+            'Scripts are flooding in.',
+            '',
+            'What will you do? Which script will benefit from',
+            'your magic touch? Which stars will you employ?',
+            'How much money will you spend?',
+            '',
+            'Will your pic have legs or be N.S.G. (not so good,',
+            'as they say in Daily Variety). Was your casting',
+            'astute enough to capture some Academy Awards?',
+            '',
+            'Here\'s your big chance to find out. As they say',
+            'in the biz, BREAK A LEG.',
+        ],
+    },
+    {
+        heading: 'SCRIPT',
+        lines: [
+            'At the beginning of the game, you will be handed',
+            'the scripts to three different movies. Read the',
+            'descriptions carefully and decide which of the',
+            'three you want to produce.',
+        ],
+    },
+    {
+        heading: 'CASTING',
+        lines: [
+            'After selecting a script, you must hire actors to',
+            'star in your film. A list of twelve available',
+            'actors and actresses and their salary demands will',
+            'appear on the screen. You may hire only three.',
+            '',
+            'Consider how well an actor is suited for the part.',
+            'Talent is important, especially during Oscar time.',
+            'A big star demands a big salary but attracts a big',
+            'audience.',
+            '',
+            'Some parts are restricted by sex while others',
+            'aren\'t. Experiment to see which roles can be',
+            'portrayed by either an actor or an actress.',
+        ],
+    },
+    {
+        heading: 'PRODUCTION COST',
+        lines: [
+            'Decide how much you want to spend making your',
+            'movie. The money you allot directly reflects its',
+            'quality.',
+            '',
+            'A high-quality picture will normally outperform a',
+            'cheap, low-budget movie. However, a small movie',
+            'can make a huge profit and a big film can turn',
+            'into an expensive failure.',
+            '',
+            'Total cost = production budget + star salaries',
+            '             + any cost overruns.',
+        ],
+    },
+    {
+        heading: 'REVIEWS',
+        lines: [
+            'After your film is shot and before it is released',
+            'to the public, there will be a special screening',
+            'for the critics.',
+            '',
+            'What the critics say may affect your film\'s',
+            'popularity at the box office. Unfortunately, you',
+            'have no control over them, so just read \'em',
+            'and weep.',
+        ],
+    },
+    {
+        heading: 'BOX OFFICE',
+        lines: [
+            'Your picture is now ready for wide release. You',
+            'will see a weekly total and a running grand total',
+            'of revenues.',
+            '',
+            'Some films will have \'legs\' and their weekly take',
+            'will drop very slowly. Others may have a big',
+            'opening week, then fade away quickly.',
+            '',
+            'The smallest a film can generate is $200,000.',
+            'If that is all it has made, you have what we in',
+            'the biz call a \'bomb\'.',
+        ],
+    },
+    {
+        heading: 'ACADEMY AWARDS',
+        lines: [
+            'No matter how poorly your film did, it will have',
+            'a chance to win an Academy Award.',
+            '',
+            'Taking home an Oscar means an opportunity to',
+            're-release your movie. The revenue from a',
+            're-release could be the difference between making',
+            'and losing money.',
+        ],
+    },
+    {
+        heading: 'HIGH SCORES',
+        lines: [
+            'At the end of the game you will be told how much',
+            'you made or lost. If you did exceptionally well,',
+            'you and your film will enter the high score list.',
+            '',
+            'A really poor performance will give you the',
+            'dishonorable distinction of making the low score',
+            'list.',
+            '',
+            'When identical movie titles appear with the same',
+            'initials, a marker is added to distinguish them.',
+            '',
+            'To reset the leaderboard, press R on the high',
+            'score screen.',
+        ],
+    },
+];
+
+async function showHelp(): Promise<void> {
+    for (let i = 0; i < HELP_PAGES.length; i++) {
+        clearScreen();
+        const page = HELP_PAGES[i];
+        print(`HELP  (${i + 1}/${HELP_PAGES.length})`, 'dim', 'center');
+        printBlank();
+        print(page.heading, 'bright', 'center');
+        printBlank();
+        for (const line of page.lines) {
+            if (line === '') printBlank();
+            else print(line);
+        }
+        printBlank();
+        const isLast = i === HELP_PAGES.length - 1;
+        print(isLast ? 'Press any key to return' : 'Press any key for next page', 'dim', 'center');
+        await waitForKey();
     }
 }
 
@@ -562,14 +720,20 @@ async function runGame(): Promise<void> {
 
     await showTitleScreen();
 
-    print('MOVIE MOGUL', 'bright', 'bold', 'center');
-    printBlank();
-    print('Written by Anthony Chiang', 'dim', 'center');
-    print('Converted to the C-64 by Alan Gardner', 'dim', 'center');
-    print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
-    print(`v${__APP_VERSION__}`, 'dim', 'center');
-    printBlank();
-    await pressAnyKey();
+    while (true) {
+        clearScreen();
+        print('MOVIE MOGUL', 'bright', 'bold', 'center');
+        printBlank();
+        print('Written by Anthony Chiang', 'dim', 'center');
+        print('Converted to the C-64 by Alan Gardner', 'dim', 'center');
+        print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
+        print(`v${__APP_VERSION__}`, 'dim', 'center');
+        printBlank();
+        print('P)lay   H)elp', 'dim', 'center');
+        const key = (await waitForKey()).toLowerCase();
+        if (key === 'p') break;
+        if (key === 'h') await showHelp();
+    }
 
     while (true) {
         const state = initialGameState();
