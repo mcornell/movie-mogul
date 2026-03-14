@@ -13,7 +13,7 @@ Each actor has 7 stats. All values are in the range **1–9** except where noted
 
 | Index | Name | Used in | Notes |
 |-------|------|---------|-------|
-| `stats[0]` | *(unused)* | — | Always 2 for males, 4 or 6 for females. Never read by game logic; likely a legacy field from original data encoding. |
+| `stats[0]` | *(unused)* | — | Never read by game logic. |
 | `stats[1]` | **Star Power** | Pay formula, Oscar threshold, Best Picture | The most important stat. Halved and combined with `stats[2]` to set salary. Also the threshold for winning acting Oscars and contributing to Best Picture. |
 | `stats[2]` | **Pay Additive** | Pay formula | Added directly to `stats[1]/2`. High value = expensive actor. |
 | `stats[3]` | **Dramatic Range** | Box office penalty (`bq`) | Compared against `role.requirements[4]`. If below requirement, reduces master quality score. |

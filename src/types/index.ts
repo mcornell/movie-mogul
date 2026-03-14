@@ -10,7 +10,7 @@ export type Gender = 'M' | 'F' | 'N';
 
 // An actor from the C64 actor data file.
 //
-// stats[0] — unknown/unused; always 2 for male actors, 4 or 6 for female (likely legacy data)
+// stats[0] — unused; never read by game logic
 // stats[1] — STAR POWER: used in pay formula (÷2), Oscar award threshold, Best Picture score
 // stats[2] — PAY ADDITIVE: combined with stats[1] in pay formula; high = expensive actor
 // stats[3] — DRAMATIC RANGE: matched against role requirements[4]; low = miscast penalty
