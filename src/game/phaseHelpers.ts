@@ -91,18 +91,20 @@ export interface OverrunResult {
  * Determine production cost overrun from a 0–99 roll.
  * Mirrors BASIC lines 1540–1610 (approximate thresholds).
  *
- * roll  0–2  → 30% over budget
- * roll  3–6  → 20% over budget
- * roll  7–14 → 10% over budget
- * roll 15–29 → 2% over budget
- * roll 30–99 → on budget
+ * roll  0–2  → 30% over budget  (BASIC line 1640)
+ * roll  3–6  → 20% over budget  (BASIC line 1630)
+ * roll  7–14 → 10% over budget  (BASIC line 1620)
+ * roll 15–29 → 5% over budget   (BASIC line 1610)
+ * roll 30–69 → 2% over budget   (BASIC line 1600)
+ * roll 70–99 → on budget        (BASIC line 1590)
  */
 export function budgetOverrun(budget: number, roll: number): OverrunResult {
     const trunc = Math.trunc;
     if (roll < 3)  return { text: 'The production went 30% over budget.', overrun: trunc(budget * 0.30) };
     if (roll < 7)  return { text: 'The production went 20% over budget.', overrun: trunc(budget * 0.20) };
     if (roll < 15) return { text: 'The production went 10% over budget.', overrun: trunc(budget * 0.10) };
-    if (roll < 30) return { text: 'The production went 2% over budget.',  overrun: trunc(budget * 0.02) };
+    if (roll < 30) return { text: 'The production went 5% over budget.',  overrun: trunc(budget * 0.05) };
+    if (roll < 70) return { text: 'The production went 2% over budget.',  overrun: trunc(budget * 0.02) };
     return             { text: 'The movie comes in on budget.',           overrun: 0 };
 }
 

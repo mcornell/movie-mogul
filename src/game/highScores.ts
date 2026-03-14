@@ -106,12 +106,34 @@ export function emptyHighScores(): HighScoreData {
     };
 }
 
+/**
+ * Return the blank placeholder entries used to pre-populate the leaderboard.
+ * Mirrors C64 reset mm.scores.prg: 4 categories × 5 slots, all score=0.
+ *
+ *   movieTitle: "No Movie-A" … "No Movie-D"  (chr$(64+i) for i=1..4)
+ *   initials:   "boA" … "boE"               (chr$(64+j) for j=1..5)
+ */
+export function defaultHighScores(): HighScoreData {
+    const slots = (i: number): HighScoreEntry[] =>
+        Array.from({ length: 5 }, (_, j) => ({
+            movieTitle: `No Movie-${String.fromCharCode(64 + i)}`,
+            initials:   `bo${String.fromCharCode(65 + j)}`,
+            score:      0,
+        }));
+    return {
+        highestProfit:   slots(1),
+        greatestRevenue: slots(2),
+        bestPctReturned: slots(3),
+        biggestBomb:     slots(4),
+    };
+}
+
 export function loadHighScores(): HighScoreData {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) return JSON.parse(raw) as HighScoreData;
     } catch { /* ignore */ }
-    return emptyHighScores();
+    return defaultHighScores();
 }
 
 export function saveHighScores(data: HighScoreData): void {

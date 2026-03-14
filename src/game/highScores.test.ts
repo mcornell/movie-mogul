@@ -1,12 +1,30 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
     calculateGameScores,
     qualifiesFor,
     insertEntry,
     buildInitials,
     emptyHighScores,
+    defaultHighScores,
+    loadHighScores,
+    saveHighScores,
 } from './highScores';
 import type { HighScoreEntry, HighScoreData } from './highScores';
+
+// ── localStorage mock ─────────────────────────────────────────────────────────
+
+function makeLocalStorageMock() {
+    let store: Record<string, string> = {};
+    return {
+        getItem:    (key: string) => store[key] ?? null,
+        setItem:    (key: string, value: string) => { store[key] = value; },
+        removeItem: (key: string) => { delete store[key]; },
+        clear:      () => { store = {}; },
+    };
+}
+
+const localStorageMock = makeLocalStorageMock();
+vi.stubGlobal('localStorage', localStorageMock);
 
 // ── calculateGameScores ───────────────────────────────────────────────────────
 
@@ -132,5 +150,98 @@ describe('buildInitials', () => {
         const d = data();
         d.biggestBomb = [{ movieTitle: 'SPACE WARS', initials: 'MCG', score: 100 }];
         expect(buildInitials('SPACE WARS', 'MCG', d)).toBe('MCGa');
+    });
+});
+
+// ── defaultHighScores ─────────────────────────────────────────────────────────
+
+describe('defaultHighScores', () => {
+    // Mirrors C64 reset mm.scores.prg:
+    //   for i=1to4: for j=1to5
+    //     print#2, "No Movie-" + chr$(64+i)   → "No Movie-A"..."No Movie-D"
+    //     print#2, "bo" + chr$(64+j)          → "boA"..."boE"
+    //     print#2, 0
+    //   next j: next i
+
+    it('each category has exactly 5 entries', () => {
+        const d = defaultHighScores();
+        expect(d.highestProfit.length).toBe(5);
+        expect(d.greatestRevenue.length).toBe(5);
+        expect(d.bestPctReturned.length).toBe(5);
+        expect(d.biggestBomb.length).toBe(5);
+    });
+
+    it('all entries have score 0', () => {
+        const d = defaultHighScores();
+        const all = [...d.highestProfit, ...d.greatestRevenue, ...d.bestPctReturned, ...d.biggestBomb];
+        expect(all.every(e => e.score === 0)).toBe(true);
+    });
+
+    it('initials cycle boA–boE within each category', () => {
+        const d = defaultHighScores();
+        expect(d.highestProfit.map(e => e.initials)).toEqual(['boA', 'boB', 'boC', 'boD', 'boE']);
+        expect(d.biggestBomb.map(e => e.initials)).toEqual(['boA', 'boB', 'boC', 'boD', 'boE']);
+    });
+
+    it('each category has a unique "No Movie-X" title (A–D)', () => {
+        const d = defaultHighScores();
+        expect(d.highestProfit[0].movieTitle).toBe('No Movie-A');
+        expect(d.greatestRevenue[0].movieTitle).toBe('No Movie-B');
+        expect(d.bestPctReturned[0].movieTitle).toBe('No Movie-C');
+        expect(d.biggestBomb[0].movieTitle).toBe('No Movie-D');
+    });
+
+    it('a positive score always beats a default entry (qualifiesFor)', () => {
+        const d = defaultHighScores();
+        expect(qualifiesFor(d.highestProfit, 1)).toBe(true);
+    });
+});
+
+// ── loadHighScores / saveHighScores ───────────────────────────────────────────
+
+describe('loadHighScores', () => {
+    beforeEach(() => localStorageMock.clear());
+
+    it('returns defaultHighScores() when localStorage is empty', () => {
+        const d = loadHighScores();
+        expect(d.highestProfit[0].movieTitle).toBe('No Movie-A');
+        expect(d.highestProfit).toHaveLength(5);
+    });
+
+    it('returns previously saved data', () => {
+        const custom: HighScoreData = {
+            ...defaultHighScores(),
+            highestProfit: [{ movieTitle: 'SPACE WARS', initials: 'MCG', score: 99999 }],
+        };
+        saveHighScores(custom);
+        const loaded = loadHighScores();
+        expect(loaded.highestProfit[0].movieTitle).toBe('SPACE WARS');
+        expect(loaded.highestProfit[0].score).toBe(99999);
+    });
+
+    it('returns defaultHighScores() when stored JSON is corrupt', () => {
+        localStorageMock.setItem('movieMogulHighScores', 'not-valid-json{{{');
+        const d = loadHighScores();
+        expect(d.highestProfit[0].movieTitle).toBe('No Movie-A');
+    });
+});
+
+describe('saveHighScores', () => {
+    beforeEach(() => localStorageMock.clear());
+
+    it('persists data that survives a load round-trip', () => {
+        const entry: HighScoreEntry = { movieTitle: 'GALAXY QUEST', initials: 'TIM', score: 42000 };
+        const data: HighScoreData = { ...defaultHighScores(), greatestRevenue: [entry] };
+        saveHighScores(data);
+        const loaded = loadHighScores();
+        expect(loaded.greatestRevenue[0]).toEqual(entry);
+    });
+
+    it('persists cheat flag through JSON round-trip', () => {
+        const entry: HighScoreEntry = { movieTitle: 'CHEAT FILM', initials: 'XYZ', score: 1, cheat: true };
+        const data: HighScoreData = { ...defaultHighScores(), highestProfit: [entry] };
+        saveHighScores(data);
+        const loaded = loadHighScores();
+        expect(loaded.highestProfit[0].cheat).toBe(true);
     });
 });

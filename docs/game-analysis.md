@@ -141,6 +141,8 @@ flowchart TD
 - `x` = `int(rnd(1)*300)+31` → **31 to 330**
 - If `py(i) < 100`, add 100 (minimum floor of $100K)
 
+> **Operator precedence (important):** `INT()` wraps only `(stats[1]/2 + stats[2])`, **not** the whole product. The multiplication by `x` happens *after* truncation. This produces different results when `stats[1]` is odd — e.g., stats[1]=7: `int(3.5 + stats[2])` vs `int((3.5 + stats[2]) * x)`. The pay examples below and `src/game/gameEngine.ts` both use the correct (post-truncation multiply) form.
+
 **Pay examples** (mid-range x ≈ 180):
 
 | Actor | stats[1] | stats[2] | base factor | Pay range |
