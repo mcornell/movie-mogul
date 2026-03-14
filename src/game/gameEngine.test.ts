@@ -102,9 +102,12 @@ describe('pickActorPool', () => {
 
 describe('calculatePay', () => {
     // Formula (BASIC line 3800):
-    //   x = int(rnd(1)*300) + 31           → multiplier 31–330
-    //   py = int((stats[1]/2 + stats[2]) * x)
+    //   x = int(rnd(1)*300) + 31               → multiplier 31–330
+    //   py = int(stats[1]/2 + stats[2]) * x    → INT truncates the base BEFORE multiplying
     //   if py < 100: py += 100
+    //
+    // NOTE: INT() wraps only the base value, NOT the whole product.
+    // This matters when stats[1] is odd: int(5/2 + 6) = int(8.5) = 8, not int(8.5 * x).
 
     const actor: Actor = {
         id: 1,
@@ -114,10 +117,19 @@ describe('calculatePay', () => {
         stats: [1, 4, 6, 3, 5, 7, 5],
     };
 
-    it('applies the pay formula correctly', () => {
+    it('applies the pay formula correctly (even stats[1])', () => {
         // x = int(0 * 300) + 31 = 31
-        // py = int((4/2 + 6) * 31) = int(8 * 31) = 248
+        // base = int(4/2 + 6) = int(8.0) = 8
+        // py = 8 * 31 = 248
         const pay = calculatePay(actor, seqRng(0.0));
+        expect(pay).toBe(248);
+    });
+
+    it('truncates the base before multiplying — critical with odd stats[1]', () => {
+        // stats[1]=5 (odd): int(5/2 + 6) = int(8.5) = 8  (not 8.5)
+        // x=31 → py = 8 * 31 = 248 (not int(8.5 * 31) = int(263.5) = 263)
+        const oddActor: Actor = { ...actor, stats: [1, 5, 6, 3, 5, 7, 5] };
+        const pay = calculatePay(oddActor, seqRng(0.0));
         expect(pay).toBe(248);
     });
 
@@ -132,10 +144,9 @@ describe('calculatePay', () => {
         // rng=0.0 → x=31, rng=0.9999 → x = int(0.9999*300)+31 = 299+31 = 330
         const payMin = calculatePay(actor, seqRng(0.0));
         const payMax = calculatePay(actor, seqRng(0.9999));
-        const baseMin = Math.floor((4 / 2 + 6) * 31);
-        const baseMax = Math.floor((4 / 2 + 6) * 330);
-        expect(payMin).toBe(baseMin);
-        expect(payMax).toBe(baseMax);
+        const base = Math.trunc(4 / 2 + 6); // = 8
+        expect(payMin).toBe(base * 31);
+        expect(payMax).toBe(base * 330);
     });
 });
 
