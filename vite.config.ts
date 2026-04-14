@@ -16,6 +16,6 @@ export default defineConfig({
     outDir: "dist",
   },
   test: {
-    exclude: ['e2e/**', '.features-gen/**', 'node_modules/**'],
+    exclude: ['e2e/**', '.features-gen/**', '.features-gen-api/**', 'node_modules/**'],
   },
 });

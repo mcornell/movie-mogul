@@ -139,3 +139,26 @@ export function loadHighScores(): HighScoreData {
 export function saveHighScores(data: HighScoreData): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
+
+// ── API leaderboard fetch (global deployment) ─────────────────────────────────
+
+type ApiRow = { movie_title: string; initials: string; score: number };
+
+function rowsToEntries(rows: ApiRow[] | undefined): HighScoreEntry[] {
+    return (rows ?? []).map(r => ({ movieTitle: r.movie_title, initials: r.initials, score: r.score }));
+}
+
+/**
+ * Fetch the global leaderboard from the Worker API and convert it to HighScoreData.
+ * Used by the API-driven game loop in main.ts.
+ */
+export async function fetchLeaderboardsFromApi(apiBase: string): Promise<HighScoreData> {
+    const res  = await fetch(`${apiBase}/api/scores`);
+    const data = await res.json() as Record<string, ApiRow[]>;
+    return {
+        highestProfit:   rowsToEntries(data.highestProfit),
+        greatestRevenue: rowsToEntries(data.greatestRevenue),
+        bestPctReturned: rowsToEntries(data.bestPctReturned),
+        biggestBomb:     rowsToEntries(data.biggestBomb),
+    };
+}
