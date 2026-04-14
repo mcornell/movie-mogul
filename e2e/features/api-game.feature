@@ -26,6 +26,17 @@ Feature: API-driven game (global deployment)
     And I press any key
     Then the output contains "John Wayne"
 
+  Scenario: Casting actors calls the cast API and shows the budget prompt
+    When I press "p"
+    Then the output contains "You have been sent three scripts"
+    When I enter "1"
+    And I press any key
+    Then the output contains "Casting Call"
+    When I enter "1"
+    And I enter "2"
+    And I enter "9"
+    Then the output contains "Total cost of salaries"
+
   Scenario: Cheat mode is disabled even with ?cheat in the URL
     Given I open the game with cheat param
     And I advance past the title screen

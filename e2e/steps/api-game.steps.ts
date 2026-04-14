@@ -45,6 +45,17 @@ const MOCK_START_RESPONSE = {
     ],
 };
 
+const MOCK_CAST_RESPONSE = {
+    castSummary: [
+        { roleName: 'The Hero',    actorName: 'John Wayne',     pay: 5000 },
+        { roleName: 'The Villain', actorName: 'Clint Eastwood', pay: 4800 },
+        { roleName: 'The Maiden',  actorName: 'Meryl Streep',   pay: 5200 },
+    ],
+    salaryCost:  15000,
+    budgetMin:   12000,
+    budgetIdeal: 25000,
+};
+
 const MOCK_MOVIE_RESPONSE = {
     actorPool: [
         { id: 1,  name: 'John Wayne',      gender: 'M', pay: 5000  },
@@ -74,6 +85,10 @@ Given('the API endpoints are mocked', async ({ page }) => {
 
     await page.route('/api/game/movie', async route => {
         await route.fulfill({ json: MOCK_MOVIE_RESPONSE });
+    });
+
+    await page.route('/api/game/cast', async route => {
+        await route.fulfill({ json: MOCK_CAST_RESPONSE });
     });
 
     // Store startCalled flag on page so assertions can read it
