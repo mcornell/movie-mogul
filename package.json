@@ -6,6 +6,7 @@
         "dev": "vite",
         "build": "vite build",
         "build:global": "VITE_SCORES_API=1 vite build",
+        "deploy:global": "npm run build:global && npx wrangler pages deploy dist --project-name movie-mogul-game",
         "test": "vitest",
         "coverage": "vitest run --coverage",
         "install:browsers": "playwright install chromium webkit firefox",
