@@ -4,7 +4,7 @@ import { readFileSync } from "fs";
 const pkg = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: string };
 
 export default defineConfig({
-  base: '/games/movie-mogul/',
+  base: process.env.VITE_SCORES_API ? '/' : '/games/movie-mogul/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
