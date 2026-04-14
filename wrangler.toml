@@ -2,6 +2,9 @@ name = "movie-mogul-game"
 compatibility_date = "2026-04-07"
 pages_build_output_dir = "dist"
 
+[placement]
+mode = "smart"
+
 [build.environment_variables]
 WRANGLER_VERSION = "4"
 
