@@ -5,6 +5,7 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
+        "build:cloudflare": "npm install && npm run build:global",
         "build:global": "VITE_SCORES_API=1 vite build",
         "deploy:global": "npm run build:global && npx wrangler pages deploy dist --project-name movie-mogul-game",
         "test": "vitest",
