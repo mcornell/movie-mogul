@@ -1,6 +1,12 @@
 name = "movie-mogul-game"
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-04-07"
 pages_build_output_dir = "dist"
+
+[placement]
+mode = "smart"
+
+[build.environment_variables]
+WRANGLER_VERSION = "4"
 
 # Default: local dev and preview deployments use the dev database
 [[d1_databases]]
