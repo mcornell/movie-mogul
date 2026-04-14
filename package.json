@@ -5,6 +5,8 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
+        "build:global": "VITE_SCORES_API=1 vite build",
+        "deploy:global": "npm run build:global && npx wrangler pages deploy dist --project-name movie-mogul-game",
         "test": "vitest",
         "coverage": "vitest run --coverage",
         "install:browsers": "playwright install chromium webkit firefox",
@@ -14,12 +16,14 @@
         "deploy": "./scripts/deploy.sh"
     },
     "devDependencies": {
+        "@cloudflare/workers-types": "^4.20260414.1",
         "@cucumber/cucumber": "^12.7.0",
         "@playwright/test": "^1.58.2",
         "@vitest/coverage-v8": "^4.0.18",
         "playwright-bdd": "^8.4.2",
         "typescript": "^5.9.0",
         "vite": "^7.3.1",
-        "vitest": "^4.0.18"
+        "vitest": "^4.0.18",
+        "wrangler": "^4.82.2"
     }
 }
