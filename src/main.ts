@@ -23,9 +23,21 @@ import {
     loadHighScores,
     saveHighScores,
     defaultHighScores,
+    fetchLeaderboardsFromApi,
 } from './game/highScores';
 
 import type { HighScoreData, HighScoreEntry } from './game/highScores';
+import {
+    apiPost,
+    toHighScoreData,
+} from './api/client';
+import type {
+    StartResponse,
+    MovieApiResponse,
+    CastApiResponse,
+    BudgetApiResponse,
+    FinishApiResponse,
+} from './api/client';
 import {
     print,
     printBlank,
@@ -43,7 +55,8 @@ import {
 // ── Cheat mode ────────────────────────────────────────────────────────────────
 
 const params = new URLSearchParams(window.location.search);
-const cheatMode = params.has('cheat');
+// cheatMode is always false in the global deployment (VITE_SCORES_API is set)
+const cheatMode = !import.meta.env.VITE_SCORES_API && params.has('cheat');
 
 // Seeded RNG for deterministic E2E testing — inject via ?seed=N
 const seedParam = params.get('seed');
@@ -696,4 +709,304 @@ async function runGame(): Promise<void> {
     print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
 }
 
-runGame();
+// ── API-driven game loop (global deployment) ──────────────────────────────────
+
+// ── Single API game ───────────────────────────────────────────────────────────
+
+async function playOneGameApi(): Promise<boolean> {
+    // ── Phase 1: Movie Selection ──────────────────────────────────────────────
+    clearScreen();
+    print('Please wait...', 'dim');
+    const { sessionId, movieChoices } = await apiPost<StartResponse>('/api/game/start');
+
+    clearScreen();
+    for (let i = 0; i < 3; i++) {
+        const m = movieChoices[i];
+        print(`${i + 1})  ${m.title}`, 'bright');
+        print(`    ${m.descriptionLines.join(' ')}`);
+        print(`    *roles==> ${m.roles[0].name}`);
+        print(`              ${m.roles[1].name}`);
+        print(`              ${m.roles[2].name}`);
+        printBlank();
+    }
+    print('You have been sent three scripts.', 'bright');
+
+    let choice = 0;
+    while (choice < 1 || choice > 3) {
+        const input = await readLine('Which do you want to produce (1-3)?');
+        choice = parseInt(input, 10);
+    }
+    const selectedMovie = movieChoices[choice - 1];
+    print(selectedMovie.title, 'bright', 'center');
+    await pressAnyKey();
+
+    // ── Phase 2: Casting ──────────────────────────────────────────────────────
+    clearScreen();
+    printHeading(`Casting Call for "${selectedMovie.title}"`);
+    print('Please wait...', 'dim');
+
+    const { actorPool } = await apiPost<MovieApiResponse>('/api/game/movie', { sessionId, choice });
+
+    printBlank();
+    const PAY_WIDTH = 14;
+    print('  ' + 'NAME'.padEnd(26) + 'PAY'.padStart(PAY_WIDTH), 'bright');
+    printBlank();
+    actorPool.forEach((actor, i) => {
+        const num = String(i + 1).padStart(2);
+        const pay = formatMoney(actor.pay).padStart(PAY_WIDTH);
+        print(`${num}) ${actor.name.padEnd(24)} ${pay}`);
+    });
+    printBlank();
+
+    const pickedPoolIndices: number[] = [];
+    for (let roleIdx = 0; roleIdx < 3; roleIdx++) {
+        const role = selectedMovie.roles[roleIdx];
+        let poolIdx = -1;
+        while (poolIdx === -1) {
+            const input = await readLine(`Who will you cast as the ${role.name}?`);
+            const n = parseInt(input, 10);
+            if (isNaN(n) || n < 1 || n > 12) { print('Invalid selection.', 'red'); continue; }
+            if (pickedPoolIndices.includes(n - 1)) { print('That actor is already cast in another role.', 'red'); continue; }
+            const candidate = actorPool[n - 1];
+            const genderCode = role.requirements[0];
+            const genderOk =
+                genderCode === 5 ||
+                (genderCode === 1 && candidate.gender === 'M') ||
+                (genderCode === 9 && candidate.gender === 'F');
+            if (!genderOk) { print('That actor is the wrong gender for this role.', 'red'); continue; }
+            poolIdx = n - 1;
+        }
+        pickedPoolIndices.push(poolIdx);
+        print(actorPool[poolIdx].name, 'bright');
+    }
+    const actorIndices = pickedPoolIndices.map(i => i + 1); // 1-based
+    printBlank();
+
+    const castResp = await apiPost<CastApiResponse>('/api/game/cast', { sessionId, actorIndices });
+    print(`Total cost of salaries: ${formatMoney(castResp.salaryCost)}`);
+    await pressAnyKey();
+
+    // ── Phase 3: Budget ───────────────────────────────────────────────────────
+    clearScreen();
+    print(`Total cost of salaries: ${formatMoney(castResp.salaryCost)}`, 'bright');
+    printBlank();
+    print('How much do you want to spend on production?');
+    print(`(${formatMoney(castResp.budgetMin)} - $30,000,000)`, 'dim');
+
+    let budget = 0;
+    while (budget < castResp.budgetMin || budget > 30000) {
+        const input = await readLine('$ (enter amount in thousands)');
+        budget = parseInt(input, 10);
+        if (isNaN(budget) || budget < castResp.budgetMin || budget > 30000) {
+            print(`Please enter a value between ${castResp.budgetMin} and 30,000.`, 'red');
+            budget = 0;
+        }
+    }
+
+    print('Please wait...', 'dim');
+    const budgetResp = await apiPost<BudgetApiResponse>('/api/game/budget', { sessionId, budget });
+
+    // Display production event (if any)
+    if (budgetResp.event) {
+        printBlank();
+        const isNegative = budgetResp.event.reviewDelta < 0 || budgetResp.event.costDelta > 0;
+        print(budgetResp.event.message, isNegative ? 'red' : 'green');
+        await pressAnyKey();
+    }
+    print(budgetResp.overrunText, budgetResp.overrun > 0 ? 'red' : 'green');
+    printBlank();
+    print(`Total cost: ${formatMoney(budgetResp.totalCost)}`);
+    await pressAnyKey();
+
+    // ── Phase 4: Reviews ──────────────────────────────────────────────────────
+    clearScreen();
+    printHeading('The reviews are in...');
+    for (const r of budgetResp.reviews) {
+        await sleep(800);
+        await printSlow(`${r.reviewer} ${r.text}`);
+    }
+    printBlank();
+    print('Press any key to release the movie', 'dim');
+    await waitForKey();
+    printBlank();
+
+    // ── Phase 5: Release ──────────────────────────────────────────────────────
+    clearScreen();
+    const { rating, vx, vy, vz, weeklyGross, movieTitle: mTitle } = budgetResp;
+
+    function printSneakPreviewHeader(week?: number): void {
+        print('MAJOR STUDIO SNEAK PREVIEW', 'bright', 'bold', 'center');
+        print('of', 'center');
+        print(mTitle, 'bright', 'bold', 'center');
+        printBlank();
+        print('starring', 'center');
+        print(vx, 'bright', 'center');
+        print(`${vy} & ${vz}`, 'center');
+        printBlank();
+        print(`Rated ${rating}`, 'dim', 'center');
+        printBlank();
+        if (week !== undefined) print(`WEEK ${week}`, 'bright', 'bold', 'center');
+    }
+
+    printSneakPreviewHeader();
+    await pressAnyKey();
+
+    for (let wk = 0; wk < weeklyGross.length; wk++) {
+        clearScreen();
+        printSneakPreviewHeader(wk + 1);
+        print(`Weekly gross  - ${formatMoney(weeklyGross[wk])}`);
+        const running = weeklyGross.slice(0, wk + 1).reduce((a, b) => a + b, 0);
+        print(`Total gross   - ${formatMoney(running)}`);
+        await pressAnyKey();
+    }
+
+    clearScreen();
+    print(pullFromTheatersLine(mTitle, [vx, vy, vz], weeklyGross.length));
+    printBlank();
+    print(`Subtotal: ${formatMoney(weeklyGross.reduce((a, b) => a + b, 0))}`);
+    await pressAnyKey();
+
+    // ── Phase 6: Awards ───────────────────────────────────────────────────────
+    clearScreen();
+    const border = '+----------------------------------+';
+    const row = (s: string) => `! ${s.padEnd(32)} !`;
+    print(border, 'bright', 'center');
+    print(row(''), 'bright', 'center');
+    print(row('  * I n v i t a t i o n *'), 'bright', 'center');
+    print(row('  ======================='), 'bright', 'center');
+    print(row(''), 'bright', 'center');
+    print(row(' The Academy of Motion Pictures'), 'bright', 'center');
+    print(row(' Arts and Sciences cordially'), 'bright', 'center');
+    print(row(' invites you to attend its annual'), 'bright', 'center');
+    print(row(' Academy Awards ceremony.'), 'bright', 'center');
+    print(row(''), 'bright', 'center');
+    print(border, 'bright', 'center');
+    printBlank();
+    print('Press any key to attend', 'dim', 'center');
+    await waitForKey();
+    printBlank();
+
+    const { actressResult, actorResult, pictureResult, reReleaseGross, oscarsWon } = budgetResp;
+
+    clearScreen();
+    print('Welcome to the annual Academy Awards presentation.');
+    printBlank();
+    print(`Here to present the first award is ${budgetResp.presenter1}`);
+    printBlank();
+    print('The winner of the Oscar for Best Actress is...');
+    await sleep(1500);
+    print(`${actressResult.winnerName} for "${actressResult.winnerMovie}"`, 'bright', 'bold');
+
+    await sleep(2500);
+    clearScreen();
+    print(`Here to present the next Oscar is ${budgetResp.presenter2}`);
+    printBlank();
+    print('The winner of the Oscar for Best Actor is...');
+    await sleep(1500);
+    print(`${actorResult.winnerName} for "${actorResult.winnerMovie}"`, 'bright', 'bold');
+
+    await sleep(2500);
+    clearScreen();
+    print(`Here to award the final oscar is ${budgetResp.presenter3}`);
+    printBlank();
+    print('The award for Best Picture goes to...');
+    await sleep(1500);
+    print(pictureResult.winnerName, 'bright', 'bold');
+
+    await sleep(2500);
+    clearScreen();
+    if (oscarsWon > 0) {
+        print('Because of the Oscars, your movie will be re-released.');
+        print(`The re-release grosses ${formatMoney(reReleaseGross)}`, 'bright');
+    } else {
+        print('Your movie will not be re-released.', 'dim');
+    }
+    printBlank();
+    await pressAnyKey();
+
+    // ── Phase 7: Summary ──────────────────────────────────────────────────────
+    clearScreen();
+    printHeading(mTitle);
+    print(`Total cost - ${formatMoney(budgetResp.totalCost)}`);
+    print(`Total revenue - ${formatMoney(budgetResp.totalGross)}`);
+    printSeparator();
+    const { text: verdict, profit } = profitLossResult(budgetResp.totalGross, budgetResp.totalCost);
+    print(verdict, profit > 0 ? 'green' : profit < 0 ? 'red' : 'bright');
+    printBlank();
+    await pressAnyKey();
+
+    // ── Phase 8: High Scores ──────────────────────────────────────────────────
+    clearScreen();
+    const { qualifies, scores } = budgetResp;
+    printBlank();
+    print(`Your score - ${formatMoney(Math.abs(scores.profit))} ${scores.profit >= 0 ? 'profit' : 'loss'}`, 'bright', 'center');
+    print(`${scores.pctReturned}% returned`, 'center');
+    printBlank();
+
+    let initials = '';
+    if (qualifies) {
+        while (!initials) {
+            initials = (await readLine('Enter your initials (3 chars)', 3)).trim().toUpperCase();
+        }
+    }
+
+    print('Please wait...', 'dim');
+    const finishResp = await apiPost<FinishApiResponse>('/api/game/finish', { sessionId, initials });
+    let data = toHighScoreData(finishResp.leaderboards);
+
+    clearScreen();
+    let page: 1 | 2 = 1;
+    printHighScorePage(data, page);
+    printBlank();
+
+    while (true) {
+        print('P)lay Again   V)iew other page   Q)uit', 'dim', 'center');
+        const key = (await waitForKey()).toLowerCase();
+        if (key === 'p') return true;
+        if (key === 'q') return false;
+        if (key === 'v') {
+            page = page === 1 ? 2 : 1;
+            clearScreen();
+            printHighScorePage(data, page);
+            printBlank();
+        }
+    }
+}
+
+async function runGameApi(): Promise<void> {
+    await showTitleScreen();
+
+    while (true) {
+        clearScreen();
+        print('MOVIE MOGUL', 'bright', 'bold', 'center');
+        printBlank();
+        print('Written by Anthony Chiang', 'dim', 'center');
+        print('Converted to the C-64 by Alan Gardner', 'dim', 'center');
+        print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
+        print(`v${__APP_VERSION__}`, 'dim', 'center');
+        printBlank();
+        print('P)lay   H)elp', 'dim', 'center');
+        const key = (await waitForKey()).toLowerCase();
+        if (key === 'p') break;
+        if (key === 'h') await showHelp();
+    }
+
+    while (true) {
+        const playAgain = await playOneGameApi();
+        if (!playAgain) break;
+    }
+
+    clearScreen();
+    printBlank();
+    print('Thanks for playing Movie Mogul!', 'bright', 'center');
+    printBlank();
+    print('Copyright 1985 Chiang Brothers Software', 'dim', 'center');
+}
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+
+if (import.meta.env.VITE_SCORES_API) {
+    runGameApi();
+} else {
+    runGame();
+}

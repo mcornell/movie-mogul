@@ -8,6 +8,7 @@ import {
     defaultHighScores,
     loadHighScores,
     saveHighScores,
+    fetchLeaderboardsFromApi,
 } from './highScores';
 import type { HighScoreEntry, HighScoreData } from './highScores';
 
@@ -243,5 +244,42 @@ describe('saveHighScores', () => {
         saveHighScores(data);
         const loaded = loadHighScores();
         expect(loaded.highestProfit[0].cheat).toBe(true);
+    });
+});
+
+// ── fetchLeaderboardsFromApi ───────────────────────────────────────────────────
+
+describe('fetchLeaderboardsFromApi', () => {
+    it('converts snake_case API rows to HighScoreData camelCase entries', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                highestProfit:   [{ movie_title: 'SPACE WARS', initials: 'ABC', score: 5000 }],
+                greatestRevenue: [{ movie_title: 'SPACE WARS', initials: 'ABC', score: 8000 }],
+                bestPctReturned: [{ movie_title: 'SPACE WARS', initials: 'ABC', score: 125  }],
+                biggestBomb:     [{ movie_title: 'BOMB FILM',  initials: 'XYZ', score: 1000 }],
+            }),
+        }));
+
+        const data = await fetchLeaderboardsFromApi('');
+
+        expect(data.highestProfit[0]).toEqual({ movieTitle: 'SPACE WARS', initials: 'ABC', score: 5000 });
+        expect(data.greatestRevenue[0].score).toBe(8000);
+        expect(data.bestPctReturned[0].score).toBe(125);
+        expect(data.biggestBomb[0].movieTitle).toBe('BOMB FILM');
+    });
+
+    it('returns empty arrays for missing categories', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({}),
+        }));
+
+        const data = await fetchLeaderboardsFromApi('');
+
+        expect(data.highestProfit).toEqual([]);
+        expect(data.greatestRevenue).toEqual([]);
+        expect(data.bestPctReturned).toEqual([]);
+        expect(data.biggestBomb).toEqual([]);
     });
 });
