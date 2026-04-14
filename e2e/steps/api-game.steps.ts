@@ -3,7 +3,7 @@
  * Uses page.route() to intercept Worker API calls and return fixed mock data.
  */
 import { expect } from '@playwright/test';
-import { Given, Then } from '../fixtures';
+import { Given, Then, When } from '../fixtures';
 
 // ── Fixed mock response for POST /api/game/start ──────────────────────────────
 
@@ -43,6 +43,15 @@ const MOCK_START_RESPONSE = {
             ],
         },
     ],
+};
+
+const MOCK_FINISH_RESPONSE = {
+    leaderboards: {
+        highestProfit:   [{ movie_title: 'No Movie-A', initials: 'boA', score: 0 }],
+        greatestRevenue: [{ movie_title: 'No Movie-B', initials: 'boA', score: 0 }],
+        bestPctReturned: [{ movie_title: 'No Movie-C', initials: 'boA', score: 0 }],
+        biggestBomb:     [{ movie_title: 'No Movie-D', initials: 'boA', score: 0 }],
+    },
 };
 
 const MOCK_BUDGET_RESPONSE = {
@@ -118,6 +127,10 @@ Given('the API endpoints are mocked', async ({ page }) => {
         await route.fulfill({ json: MOCK_BUDGET_RESPONSE });
     });
 
+    await page.route('/api/game/finish', async route => {
+        await route.fulfill({ json: MOCK_FINISH_RESPONSE });
+    });
+
     // Store startCalled flag on page so assertions can read it
     await page.exposeFunction('__getStartCalled', () => startCalled);
     await page.addInitScript(() => {
@@ -141,4 +154,16 @@ Then('the game called the start API', async ({ page }) => {
 
 Then('the output does not contain {string}', async ({ page }, text: string) => {
     await expect(page.locator('#output')).not.toContainText(text);
+});
+
+/** Press Space whenever "Press any key" is visible until targetText appears. */
+When('I drive through prompts until {string}', async ({ page }, text: string) => {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+        const output = await page.locator('#output').textContent() ?? '';
+        if (output.includes(text)) return;
+        if (output.includes('Press any key')) await page.keyboard.press('Space');
+        await page.waitForTimeout(400);
+    }
+    throw new Error(`Timed out driving to: "${text}"`);
 });
