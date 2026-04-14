@@ -45,6 +45,29 @@ const MOCK_START_RESPONSE = {
     ],
 };
 
+const MOCK_BUDGET_RESPONSE = {
+    event:         null,
+    overrunText:   'Your picture came in on budget.',
+    overrun:       0,
+    totalCost:     27000,
+    reviews:       [{ reviewer: 'Variety:', text: 'A spectacular achievement.' }],
+    rating:        'PG',
+    vx: 'John Wayne', vy: 'Clint Eastwood', vz: 'Meryl Streep',
+    weeklyGross:   [5000],
+    totalGross:    5000,
+    actressResult: { winnerName: 'Meryl Streep',    winnerMovie: 'SWORD AND SORCERY', isPlayerWin: true },
+    actorResult:   { winnerName: 'John Wayne',      winnerMovie: 'SWORD AND SORCERY', isPlayerWin: false },
+    pictureResult: { winnerName: 'SWORD AND SORCERY', winnerMovie: 'SWORD AND SORCERY', isPlayerWin: false },
+    reReleaseGross: 0,
+    oscarsWon:     1,
+    presenter1:    'Julia Roberts',
+    presenter2:    'Tom Hanks',
+    presenter3:    'Jodie Foster',
+    qualifies:     false,
+    scores:        { profit: -22000, revenue: 5000, pctReturned: 19, bomb: 22000 },
+    movieTitle:    'SWORD AND SORCERY',
+};
+
 const MOCK_CAST_RESPONSE = {
     castSummary: [
         { roleName: 'The Hero',    actorName: 'John Wayne',     pay: 5000 },
@@ -89,6 +112,10 @@ Given('the API endpoints are mocked', async ({ page }) => {
 
     await page.route('/api/game/cast', async route => {
         await route.fulfill({ json: MOCK_CAST_RESPONSE });
+    });
+
+    await page.route('/api/game/budget', async route => {
+        await route.fulfill({ json: MOCK_BUDGET_RESPONSE });
     });
 
     // Store startCalled flag on page so assertions can read it
