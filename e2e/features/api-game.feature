@@ -19,6 +19,13 @@ Feature: API-driven game (global deployment)
     When I press "p"
     Then the output contains "SWORD AND SORCERY"
 
+  Scenario: Choosing a movie calls the movie API and shows the actor pool
+    When I press "p"
+    Then the output contains "You have been sent three scripts"
+    When I enter "1"
+    And I press any key
+    Then the output contains "John Wayne"
+
   Scenario: Cheat mode is disabled even with ?cheat in the URL
     Given I open the game with cheat param
     And I advance past the title screen
