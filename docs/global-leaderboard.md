@@ -168,51 +168,107 @@ Each slice: failing Playwright scenario → inner Vitest unit tests → commit o
 
 ---
 
+## Deployments
+
+There are two separate deployments from this repo:
+
+| Deployment | URL | Build command | Game logic | High scores |
+|------------|-----|---------------|------------|-------------|
+| localStorage | `mcornell.dev/games/movie-mogul/` | `npm run build` | Browser (Vite bundle) | `localStorage` |
+| Global | `moviemogul.mcornell.dev` | `npm run build:global` | Cloudflare Worker + D1 | D1 database |
+
+The `VITE_SCORES_API` env var is the switch. When set at build time, the client bundle uses the API game loop and the game engine is excluded from the bundle (13 kB vs 34 kB).
+
+---
+
 ## One-Time Setup (global deployment)
 
+### Step 1 — Create the D1 database
+
 ```bash
-# 1. Install Wrangler if needed
-npm install -g wrangler
+npx wrangler d1 create movie-mogul-scores
+```
 
-# 2. Create D1 database and note the database_id
-wrangler d1 create movie-mogul-scores
+This prints a `database_id` UUID. The database created for this project is:
+- **Name**: `movie-mogul-scores`
+- **ID**: `cb9da560-b509-4b4e-b872-a75b4ebb335f`
+- **Region**: ENAM
 
-# 3. Update wrangler.toml with the database_id from step 2
-#    Replace REPLACE_WITH_YOUR_DATABASE_ID in wrangler.toml
+### Step 2 — Apply the schema to the remote database
 
-# 4. Apply the schema
-wrangler d1 execute movie-mogul-scores --file=schema.sql
+```bash
+npx wrangler d1 execute movie-mogul-scores --file=schema.sql --remote
+```
 
-# 5. In Cloudflare Pages dashboard:
-#    - Create new Pages project from same repo
-#    - Set build command: npm run build
-#    - Set output directory: dist
-#    - Set env var: VITE_SCORES_API=1
-#    - Bind D1 database as "DB"
-#    - Deploy
+The `--remote` flag is required — without it, Wrangler applies to a local simulation only.
 
-# 6. Verify
-wrangler d1 execute movie-mogul-scores --command "SELECT * FROM scores LIMIT 5"
+### Step 3 — Update `wrangler.toml`
+
+Set the `database_id` in `wrangler.toml` (already done — commit it on a branch and PR to develop):
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "movie-mogul-scores"
+database_id = "cb9da560-b509-4b4e-b872-a75b4ebb335f"
+```
+
+### Step 4 — Create the Cloudflare Pages project
+
+In the [Cloudflare dashboard](https://dash.cloudflare.com) → **Pages → Create a project → Connect to Git**:
+
+| Setting | Value |
+|---------|-------|
+| Repository | `movie-mogul` |
+| Production branch | `develop` |
+| Build command | `npm run build:global` |
+| Build output directory | `dist` |
+
+### Step 5 — Configure bindings and environment variables
+
+After the project is created, go to **Settings → Functions**:
+
+- **D1 database bindings** → Add: variable name `DB`, database `movie-mogul-scores`
+
+Go to **Settings → Environment variables**:
+
+- Add: `VITE_SCORES_API = 1` (production + preview)
+
+### Step 6 — Add the custom domain
+
+Go to **Custom domains → Add** and enter `moviemogul.mcornell.dev`. Cloudflare handles the DNS CNAME automatically since the domain is already on Cloudflare.
+
+### Step 7 — Deploy and verify
+
+Trigger a deploy (or push to `develop`). Then verify:
+
+```bash
+# Check scores table after playing a game
+npx wrangler d1 execute movie-mogul-scores --command "SELECT * FROM scores LIMIT 5" --remote
+
+# Check for any stuck sessions
+npx wrangler d1 execute movie-mogul-scores --command "SELECT id, phase, created_at FROM sessions" --remote
 ```
 
 ---
 
 ## Local Development
 
+To run the global (API) version locally:
+
 ```bash
-# Build the frontend first
-npm run build
+# 1. Build the frontend with VITE_SCORES_API set
+npm run build:global
 
-# Run Pages dev server with D1 local simulation
-wrangler pages dev dist --d1 DB=<local-db-id>
-
-# In a separate terminal, set the env var
-VITE_SCORES_API=1 npm run dev
+# 2. Run the Pages dev server (simulates Worker + D1 locally)
+npx wrangler pages dev dist
 ```
 
-Or use `.env.local`:
-```
-VITE_SCORES_API=1
+Wrangler will use the local D1 simulation automatically (via `.wrangler/state/`). The local DB is separate from the remote one — safe to use for testing.
+
+To run the localStorage version (no Wrangler needed):
+```bash
+npm run dev
 ```
 
 ---
@@ -220,12 +276,11 @@ VITE_SCORES_API=1
 ## Verification Checklist
 
 1. `npm run dev` (no env var) → localStorage game works, all existing Playwright tests pass
-2. `wrangler pages dev` with `VITE_SCORES_API=1` → full game runs via Worker, D1 rows written
-3. `wrangler d1 execute ... --command "SELECT * FROM scores"` → score row present after completed game
-4. Submit same `sessionId` twice to `/finish` → second call rejected (session deleted)
-5. Abandon a game → session cleaned up after 24h TTL check
-6. `?cheat` in URL → actor stats never shown in global deployment
-7. Deploy second Pages project → leaderboard persists across browsers and fresh sessions
+2. `npm run build:global && npx wrangler pages dev dist` → full game runs via Worker, D1 rows written locally
+3. After a live game: `npx wrangler d1 execute movie-mogul-scores --command "SELECT * FROM scores" --remote` → score row present
+4. Submit same `sessionId` twice to `/finish` → second call rejected (session already deleted)
+5. Abandon a game mid-session → session row auto-expired on next read (24h TTL check in `loadSession()`)
+6. `?cheat` in URL on `moviemogul.mcornell.dev` → actor stats never shown (cheat mode disabled when `VITE_SCORES_API` is set)
 
 ---
 
