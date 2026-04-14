@@ -3,6 +3,9 @@ name = "movie-mogul-game"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-04-07"
 
+[vars]
+PAGES_WRANGLER_MAJOR_VERSION = "4"
+
 [placement]
 mode = "smart"
 
