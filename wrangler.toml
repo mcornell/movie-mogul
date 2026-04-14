@@ -2,11 +2,15 @@ name = "movie-mogul-game"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "dist"
 
-# Local development uses the dev database
+# Default: local dev and preview deployments use the dev database
 [[d1_databases]]
 binding = "DB"
 database_name = "movie-mogul-scores-dev"
 database_id = "d1d06ddc-8bc9-4dda-a9d6-8c1823fc0852"
 
-# Production database: movie-mogul-scores (cb9da560-b509-4b4e-b872-a75b4ebb335f)
-# Configured in Cloudflare Pages dashboard under Production environment bindings
+# Production deployments (main branch) use the production database
+[env.production]
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "movie-mogul-scores"
+database_id = "cb9da560-b509-4b4e-b872-a75b4ebb335f"
