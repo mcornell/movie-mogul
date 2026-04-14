@@ -239,7 +239,7 @@ database_id = "cb9da560-b509-4b4e-b872-a75b4ebb335f"
 
 > **Wrangler v4 gotcha:** `PAGES_WRANGLER_MAJOR_VERSION = "4"` must be set in **both** `[vars]` and `[env.production.vars]` — it does not inherit from the top-level section.
 >
-> **esbuild gotcha:** Wrangler v4 no longer bundles its own esbuild. Add `"esbuild": "^0.28.0"` explicitly to `devDependencies` in `package.json`, or Pages Function builds will fail.
+> **esbuild gotcha:** Wrangler v4 bundles its own esbuild, but the Cloudflare Pages build image cannot access it. Add `"esbuild": "^0.28.0"` explicitly to `devDependencies` in `package.json` so the CI environment has a resolvable copy, or Pages Function builds will fail.
 
 ### Step 4 — Create the Cloudflare Pages project
 
