@@ -219,6 +219,7 @@ In the [Cloudflare dashboard](https://dash.cloudflare.com) → **Pages → Creat
 
 | Setting | Value |
 |---------|-------|
+| Project name | `movie-mogul-game` |
 | Repository | `movie-mogul` |
 | Production branch | `develop` |
 | Build command | `npm run build:global` |
@@ -248,6 +249,11 @@ npx wrangler d1 execute movie-mogul-scores --command "SELECT * FROM scores LIMIT
 
 # Check for any stuck sessions
 npx wrangler d1 execute movie-mogul-scores --command "SELECT id, phase, created_at FROM sessions" --remote
+```
+
+For manual deploys (bypassing git push):
+```bash
+npm run deploy:global
 ```
 
 ---
