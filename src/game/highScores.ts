@@ -40,9 +40,31 @@ export function calculateGameScores(totalGross: number, totalCost: number): Game
 // ── Leaderboard helpers ───────────────────────────────────────────────────────
 
 /** Return true if score beats the 5th-place entry (qualifying for the list). */
-export function qualifiesFor(list: HighScoreEntry[], score: number): boolean {
+export function qualifiesFor(list: Array<{ score: number }>, score: number): boolean {
     if (list.length < 5) return true;
     return score > list[4].score;
+}
+
+/**
+ * Return true if the player's game scores qualify for any leaderboard category.
+ * Accepts any object with a `score` field so it works with both the local
+ * HighScoreEntry[] and the server-side ScoreRow[] (snake_case from D1).
+ */
+export function playerQualifiesFor(
+    boards: {
+        highestProfit:   Array<{ score: number }>;
+        greatestRevenue: Array<{ score: number }>;
+        bestPctReturned: Array<{ score: number }>;
+        biggestBomb:     Array<{ score: number }>;
+    },
+    scores: GameScores,
+): boolean {
+    return (
+        (scores.profit > 0 && qualifiesFor(boards.highestProfit,   scores.profit))      ||
+        qualifiesFor(boards.greatestRevenue,  scores.revenue)                            ||
+        qualifiesFor(boards.bestPctReturned,  scores.pctReturned)                       ||
+        (scores.bomb > 0   && qualifiesFor(boards.biggestBomb,     scores.bomb))
+    );
 }
 
 /**

@@ -12,7 +12,7 @@ import {
     calculateReRelease,
 } from '../../../src/game/gameEngine';
 import { productionEvent, reviewVerdict, budgetOverrun } from '../../../src/game/phaseHelpers';
-import { calculateGameScores } from '../../../src/game/highScores';
+import { calculateGameScores, playerQualifiesFor } from '../../../src/game/highScores';
 import { initialGameState } from '../../../src/game/gameState';
 import type { GameState } from '../../../src/game/gameState';
 import type { Actor } from '../../../src/types';
@@ -77,7 +77,7 @@ async function fetchLeaderboard(
     return results;
 }
 
-function qualifies(list: ScoreRow[], score: number): boolean {
+function qualifiesForBoard(list: ScoreRow[], score: number): boolean {
     return list.length < 5 || score > (list[4]?.score ?? -Infinity);
 }
 
@@ -291,11 +291,7 @@ async function handleBudget(
     const boards: Record<string, ScoreRow[]> = {};
     for (const cat of CATS) boards[cat] = await fetchLeaderboard(db, cat);
 
-    const playerQualifies =
-        (gameScores.profit > 0      && qualifies(boards.highestProfit,   gameScores.profit))      ||
-        qualifies(boards.greatestRevenue,  gameScores.revenue)                                      ||
-        qualifies(boards.bestPctReturned,  gameScores.pctReturned)                                 ||
-        (gameScores.bomb > 0        && qualifies(boards.biggestBomb,     gameScores.bomb));
+    const playerQualifies = playerQualifiesFor(boards, gameScores);
 
     // Persist final state
     state.phase = 'high-scores';
@@ -353,7 +349,7 @@ async function handleFinish(
 
         const inserts: Promise<D1Result>[] = [];
         const tryInsert = (cat: string, score: number, condition: boolean) => {
-            if (condition && qualifies(boards[cat], score)) {
+            if (condition && qualifiesForBoard(boards[cat], score)) {
                 inserts.push(
                     db.prepare('INSERT INTO scores (category, movie_title, initials, score) VALUES (?, ?, ?, ?)')
                         .bind(cat, movie.title, finalInit, score)

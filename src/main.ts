@@ -18,6 +18,7 @@ import { reviewVerdict, budgetOverrun, pullFromTheatersLine, profitLossResult, p
 import {
     calculateGameScores,
     qualifiesFor,
+    playerQualifiesFor,
     insertEntry,
     buildInitials,
     loadHighScores,
@@ -513,11 +514,7 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
     const scores = calculateGameScores(state.totalGross, state.totalCost);
 
     let data = loadHighScores();
-    const qualifies =
-        (scores.profit > 0 && qualifiesFor(data.highestProfit, scores.profit)) ||
-        qualifiesFor(data.greatestRevenue, scores.revenue)     ||
-        qualifiesFor(data.bestPctReturned, scores.pctReturned) ||
-        (scores.bomb > 0 && qualifiesFor(data.biggestBomb, scores.bomb));
+    const qualifies = playerQualifiesFor(data, scores);
 
     // Show score (C64 lines 10300–10360)
     printBlank();
@@ -545,6 +542,8 @@ async function phaseHighScores(state: GameState): Promise<boolean> {
             data.biggestBomb     = insertEntry(data.biggestBomb,     mkEntry(scores.bomb));
 
         saveHighScores(data);
+    } else {
+        print('Your scores did not make the top 5.', 'dim', 'center');
     }
 
     // Display high scores with P/V/Q navigation (C64 lines 10500–10560)
@@ -948,6 +947,8 @@ async function playOneGameApi(): Promise<boolean> {
         while (!initials) {
             initials = (await readLine('Enter your initials (3 chars)', 3)).trim().toUpperCase();
         }
+    } else {
+        print('Your scores did not make the top 5.', 'dim', 'center');
     }
 
     print('Please wait...', 'dim');

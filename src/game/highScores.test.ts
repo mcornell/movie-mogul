@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
     calculateGameScores,
     qualifiesFor,
+    playerQualifiesFor,
     insertEntry,
     buildInitials,
     emptyHighScores,
@@ -244,6 +245,49 @@ describe('saveHighScores', () => {
         saveHighScores(data);
         const loaded = loadHighScores();
         expect(loaded.highestProfit[0].cheat).toBe(true);
+    });
+});
+
+// ── playerQualifiesFor ────────────────────────────────────────────────────────
+
+describe('playerQualifiesFor', () => {
+    const entry = (score: number) => ({ score });
+
+    it('qualifies when all boards are empty', () => {
+        const boards = { highestProfit: [], greatestRevenue: [], bestPctReturned: [], biggestBomb: [] };
+        expect(playerQualifiesFor(boards, calculateGameScores(5000, 3000))).toBe(true);
+    });
+
+    it('qualifies when boards have fewer than 5 entries — mirrors production board state for BONKERS!', () => {
+        // Replicates the actual production leaderboard state when the BONKERS! game was played:
+        // DEMON DUSTERS (MAC): profit 56704, revenue 79034, pct 354
+        // SLASHER NIGHTS (MAC): revenue 14039, pct 67, bomb 6801
+        const boards = {
+            highestProfit:   [entry(56704)],
+            greatestRevenue: [entry(79034), entry(14039)],
+            bestPctReturned: [entry(354),   entry(67)],
+            biggestBomb:     [entry(6801)],
+        };
+        // BONKERS! game: totalGross=4500, totalCost=2800 → profit=1700, pct=161
+        expect(playerQualifiesFor(boards, calculateGameScores(4500, 2800))).toBe(true);
+    });
+
+    it('does not qualify when all boards are full and no score makes the top 5', () => {
+        const full = [entry(5000), entry(4000), entry(3000), entry(2000), entry(1000)];
+        const boards = { highestProfit: full, greatestRevenue: full, bestPctReturned: full, biggestBomb: full };
+        // profit=60, revenue=110, pct=220, bomb<0 — revenue and pct do not beat 1000
+        expect(playerQualifiesFor(boards, calculateGameScores(110, 50))).toBe(false);
+    });
+
+    it('qualifies via biggestBomb even when the movie loses money', () => {
+        const boards = { highestProfit: [], greatestRevenue: [], bestPctReturned: [], biggestBomb: [] };
+        expect(playerQualifiesFor(boards, calculateGameScores(1000, 5000))).toBe(true);
+    });
+
+    it('qualifies via greatestRevenue regardless of profit/loss', () => {
+        const boards = { highestProfit: [], greatestRevenue: [], bestPctReturned: [], biggestBomb: [] };
+        // Movie lost money (profit < 0) but still qualifies on revenue/pct
+        expect(playerQualifiesFor(boards, calculateGameScores(2000, 3000))).toBe(true);
     });
 });
 
