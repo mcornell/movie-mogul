@@ -52,16 +52,16 @@ jobs:
           command: pages deploy dist --project-name movie-mogul-game
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox webkit
+        run: npx playwright install --with-deps chromium
 
       - name: Run standalone E2E against preview
-        run: npm run test:e2e
+        run: npx bddgen && npx playwright test --project desktop-chrome
         env:
           BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
           CI: 'true'
 
       - name: Run API E2E against preview
-        run: npm run test:e2e:api
+        run: npx bddgen -c playwright.api.config.ts && npx playwright test --config playwright.api.config.ts
         env:
           BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
           CI: 'true'
