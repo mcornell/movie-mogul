@@ -117,7 +117,7 @@ export function budgetOverrun(budget: number, roll: number): OverrunResult {
 export function pullFromTheatersLine(title: string, castNames: string[], weeks: number): string {
     // C64 line 2281: a1$ + ", " + a2$ + " and " + a3$
     const names = castNames.length < 2
-        ? castNames[0] ?? ''
+        ? castNames[0] ?? ''   // unreachable: game always provides 3 cast names
         : `${castNames.slice(0, -1).join(', ')} and ${castNames[castNames.length - 1]}`;
     return `"${title}" starring ${names} has been pulled from theaters after ${weeks} weeks.`;
 }

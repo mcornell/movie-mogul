@@ -1,8 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
 
+// When BASE_URL is set, tests run against a deployed (or externally started) server.
+// The local dev server is skipped entirely — set this to point at Cloudflare preview
+// or production: BASE_URL=https://your-site.pages.dev npm run test:e2e
+const BASE_URL = process.env.BASE_URL;
+const LOCAL_URL = 'http://localhost:3000';
+
 const testDir = defineBddConfig({
-    features: 'e2e/features/**/*.feature',
+    features: ['e2e/features/**/*.feature', '!e2e/features/api-*.feature'],
     // fixtures.ts is included first so all step files can import Given/When/Then from it
     steps: ['e2e/fixtures.ts', 'e2e/steps/**/*.ts'],
 });
@@ -18,14 +24,14 @@ export default defineConfig({
         ['junit', { outputFile: 'test-results/junit.xml' }],
     ],
     use: {
-        baseURL: 'http://localhost:3000',
+        baseURL: BASE_URL ?? LOCAL_URL,
         headless: true,
         screenshot: 'only-on-failure',
         video: 'off',
     },
-    webServer: {
+    webServer: BASE_URL ? undefined : {
         command: 'npm run dev',
-        url: 'http://localhost:3000',
+        url: LOCAL_URL,
         reuseExistingServer: !process.env.CI,
     },
     projects: [

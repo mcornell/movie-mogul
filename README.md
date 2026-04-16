@@ -1,6 +1,6 @@
 # Movie Mogul
 
-Movie mogul is an ancient C=64 game that came on a LoadStar floppy in the late 80s.
+Movie Mogul is an ancient C=64 game that came on a LoadStar floppy in the late 80s.
 
 I used to play this game all of the time as a teenager.
 
@@ -10,64 +10,180 @@ I never did it.
 
 Now that it's 2026, I thought it might be fun to look at this using some of the tools that are available now to see if I could convert this and bring myself, and maybe others, some joy.
 
+![Title screen](c64/screenshots/title.png)
+
+---
+
+## About the Game
+
+You play as a Hollywood producer. Pick one of three scripts, cast your stars, set your production budget, and see how your film performs at the box office — and maybe at the Academy Awards.
+
+### Game phases
+
+1. **Scripts** — Three movies are pitched to you. Read the descriptions, note the role requirements, and pick the one you want to produce.
+2. **Casting** — A pool of 12 actors (4–8 male, remainder female) is drawn from 140. Each has a salary demand. Cast three roles.
+3. **Production budget** — Set your budget. Spending more improves quality up to a cap. Production events may help or hurt you.
+4. **Critics** — Nine reviewers (Siskel, Ebert, Variety, and others) screen your film. Their verdicts drive your review score.
+5. **Box office** — Your film opens with a sneak preview, then runs week-by-week. A good film has "legs"; a bad one collapses quickly.
+6. **Academy Awards** — Every film has a shot at Best Actress, Best Actor, and Best Picture. Winning triggers a re-release bonus.
+7. **Summary** — Final profit or loss is tallied.
+8. **High scores** — Four leaderboard categories: Highest Profit, Greatest Revenue, Best % Returned, and Biggest Bomb.
+
+### URL parameters
+
+| Parameter | Effect |
+|-----------|--------|
+| `?seed=N` | Deterministic RNG — same seed produces the same game (used by E2E tests) |
+| `?cheat`  | Shows actor role-fit stats in the casting screen (standalone build only) |
+
+---
+
 ## Development
 
-```bash
-npm run dev      # start dev server at http://localhost:3000
-npm run build    # production build
-npm run test     # unit tests (Vitest, watch mode)
-npx vitest run   # unit tests (CI-style, single run)
-npm run deploy   # build and rsync to deploy target (see below)
-```
+### Prerequisites
 
-### Deploy target
+- Node.js 18+
+- `npm install`
 
-Copy `.env.local.example` to `.env.local` and set `DEPLOY_TARGET` to your rsync destination. If not set, `npm run deploy` will prompt you each time.
+### Commands
 
 ```bash
-cp .env.local.example .env.local
-# edit .env.local and set DEPLOY_TARGET
+npm run dev            # Vite dev server at http://localhost:3000 (standalone)
+npm run build          # Standalone build (localStorage high scores only)
+npm run build:global   # API-enabled build (VITE_SCORES_API=1, Cloudflare leaderboard)
+npm run test           # Vitest unit tests (watch mode)
+npx vitest run         # Unit tests, run once
+npm run coverage       # Unit test coverage report
 ```
 
-## E2E Tests (Playwright)
+### Testing
 
-Tests run across desktop Chrome, desktop Firefox, mobile iOS (WebKit), and mobile Android (Chromium).
+The project uses BDD dual-loop TDD: every feature starts as a failing Playwright (browser) scenario, then is driven inward through Vitest unit tests.
 
-### First-time setup
+#### Unit tests
 
-1. Install Node dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Install Playwright browsers:
-   ```bash
-   npm run install:browsers
-   ```
-
-3. **WebKit (iOS) requires system-level libraries on Linux.** Install them via:
-   ```bash
-   npx playwright install-deps webkit
-   ```
-   If that fails, install manually:
-   ```bash
-   sudo apt-get install -y libavif16
-   ```
-
-### Running tests
+Tests are co-located with source files (`gameEngine.ts` → `gameEngine.test.ts`).
 
 ```bash
-npm run test:e2e          # headless (all browsers)
-npm run test:e2e:headed   # headed (useful for debugging)
-npm run test:e2e:ui       # Playwright UI mode (interactive)
+npx vitest run                               # all tests once
+npx vitest run src/game/gameEngine.test.ts   # single file
+npm run coverage                             # coverage report
 ```
 
-Reports are written to `playwright-report/` (HTML) and `test-results/junit.xml` (JUnit XML). Screenshots are captured automatically on failure.
+#### E2E tests (Playwright BDD / Cucumber)
 
-## Project Organization
+```bash
+# Standalone — all features, 4 browsers (Chrome, Firefox, iOS WebKit, Android)
+npm run test:e2e
 
-The C64 directory contains the original D64 program (movie mogul.prg), which includes the Commodore 64 Basic program, as well as two sequential files that include "actor" and "movie" data.
+# API build — api-*.feature only, Chrome, served via wrangler pages dev
+npm run test:e2e:api
 
-The psuedocode.txt was my original effort to translate what the program was doing. It may or may not be correct.
+# Both suites sequentially
+npm run test:e2e:all
+```
 
-Util contains some ruby programs I wrote to convert the seq files into a modern data structure. I've left them for reference. I would like to rewrite into a consistent tool across the project
+Run against a deployed build instead of starting a local server:
+
+```bash
+BASE_URL=https://your-site.pages.dev npm run test:e2e
+BASE_URL=https://your-site.pages.dev npm run test:e2e:api
+BASE_URL=https://your-site.pages.dev npm run test:e2e:all
+```
+
+Feature files live in `e2e/features/`, one per game phase. Reports are written to `playwright-report/` (HTML) and `test-results/junit.xml`.
+
+**First-time setup on Linux** — WebKit (iOS) requires system libraries:
+```bash
+npx playwright install-deps webkit
+# If that fails:
+sudo apt-get install -y libavif16
+```
+
+---
+
+## Architecture
+
+Plain TypeScript, no framework. The game renders into a `<div id="output">` to simulate a C64-style terminal.
+
+```
+src/
+  data/           actors.ts, movies.ts  — 140 actors and 12 movies from C64 data files
+  game/           gameEngine.ts         — pure functions; all randomness is injected
+                  gameState.ts          — GameState type and initial state
+                  phaseHelpers.ts       — production events, reviews, overrun, release summary
+                  highScores.ts         — 4-category leaderboard with localStorage persistence
+  ui/             renderer.ts           — print(), clearScreen(), readLine(), waitForKey()
+                  format.ts             — money formatting
+  api/            client.ts             — Cloudflare Worker API client (global build only)
+  main.ts                               — full 8-phase game loop
+
+functions/
+  api/scores.ts                         — Cloudflare Pages Function: global leaderboard via D1
+
+e2e/
+  features/                             — Gherkin scenarios, one per game phase
+  steps/                                — step definitions (shared.steps.ts has all navigation)
+  pages/                                — page objects, one per phase
+```
+
+### Two builds
+
+| Build | Command | High scores |
+|-------|---------|-------------|
+| Standalone | `npm run build` | localStorage only |
+| Global | `npm run build:global` | Cloudflare D1 global leaderboard |
+
+---
+
+## Deployment
+
+There are two deployment targets:
+
+```bash
+# Standalone build → mcornell.dev (Astro site, rsync)
+# Set DEPLOY_TARGET in .env.local, or you'll be prompted
+npm run deploy:local
+
+# API-enabled build → Cloudflare Pages + D1 global leaderboard
+npm run deploy:global
+```
+
+`deploy:global` requires `wrangler` authenticated with Cloudflare. The `wrangler.toml` configures two D1 bindings: preview (local dev + CI) and production.
+
+To reset the D1 database to blank placeholder entries:
+```bash
+./scripts/reset-db.sh
+```
+
+---
+
+## Fidelity to the original
+
+All game formulas are verified against the original C64 BASIC source (`c64/movie mogul.prg`).
+
+One known bug is preserved intentionally: the Oscar eligibility check uses the first cast member's star power for all three actors (C64 variable `ao(3)` rather than `tw(3)`/`tr(3)` for actors 2 and 3). The original does this and so does this port.
+
+The annotated source (`c64/movie mogul formatted.prg`) and `docs/game-analysis.md` document all formulas, variable mappings, and the Oscar bug in detail.
+
+---
+
+## Project organization
+
+```
+c64/             Original C64 files: the BASIC source (.prg), actor and movie data (.seq),
+                 disk image (.d64), and the original LoadStar article/manual
+docs/            game-analysis.md — full mechanics breakdown with formulas and Mermaid diagrams
+util/            Ruby scripts used to convert the C64 sequential data files to TypeScript
+                 (left for reference)
+```
+
+---
+
+## Credits
+
+Original game: **© 1985 Chiang Brothers Software**  
+Written by Anthony Chiang · Converted to C-64 by Alan Gardner  
+Published in *LoadStar* magazine (Softdisk Publishing)
+
+Browser port by Mike Cornell

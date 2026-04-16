@@ -153,6 +153,20 @@ describe('buildInitials', () => {
         d.biggestBomb = [{ movieTitle: 'SPACE WARS', initials: 'MCG', score: 100 }];
         expect(buildInitials('SPACE WARS', 'MCG', d)).toBe('MCGa');
     });
+
+    it('skips entries with same movie but non-matching initials prefix (line 104 continue)', () => {
+        const d = data();
+        // Same movie, but initials 'XYZ' does not start with 'MCG' — should not conflict
+        d.highestProfit = [{ movieTitle: 'SPACE WARS', initials: 'XYZ', score: 100 }];
+        expect(buildInitials('SPACE WARS', 'MCG', d)).toBe('MCG');
+    });
+
+    it('appends "b" when only a length-4 "MCGa" entry exists (no bare 3-char seen first)', () => {
+        // First conflict encountered is length-4 — covers highestSuffix === " " branch on line 110
+        const d = data();
+        d.highestProfit = [{ movieTitle: 'SPACE WARS', initials: 'MCGa', score: 100 }];
+        expect(buildInitials('SPACE WARS', 'MCG', d)).toBe('MCGb');
+    });
 });
 
 // ── defaultHighScores ─────────────────────────────────────────────────────────
@@ -287,6 +301,19 @@ describe('playerQualifiesFor', () => {
     it('qualifies via greatestRevenue regardless of profit/loss', () => {
         const boards = { highestProfit: [], greatestRevenue: [], bestPctReturned: [], biggestBomb: [] };
         // Movie lost money (profit < 0) but still qualifies on revenue/pct
+        expect(playerQualifiesFor(boards, calculateGameScores(2000, 3000))).toBe(true);
+    });
+
+    it('qualifies via bestPctReturned when profit ≤ 0 and greatestRevenue board is full and above score', () => {
+        // profit <= 0 (first condition false), revenue < 5th place (second false), pct qualifies (third true)
+        const highRevenue = [entry(9000), entry(8000), entry(7000), entry(6000), entry(5000)];
+        const boards = {
+            highestProfit:   highRevenue,
+            greatestRevenue: highRevenue, // revenue=2000 < 5000 floor, does not qualify
+            bestPctReturned: [],           // empty — qualifies
+            biggestBomb:     highRevenue,
+        };
+        // profit=-1000 (<=0), revenue=2000, pctReturned=67
         expect(playerQualifiesFor(boards, calculateGameScores(2000, 3000))).toBe(true);
     });
 });

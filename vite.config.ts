@@ -17,5 +17,14 @@ export default defineConfig({
   },
   test: {
     exclude: ['e2e/**', '.features-gen/**', '.features-gen-api/**', 'node_modules/**'],
+    coverage: {
+      include: ['src/**/*.ts'],
+      exclude: [
+        'src/main.ts',        // full game loop, covered by E2E tests
+        'src/utils/index.ts', // arithmetic stubs, not used by game
+        'src/env.d.ts',
+        'src/vite-env.d.ts',
+      ],
+    },
   },
 });

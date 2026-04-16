@@ -11,6 +11,7 @@ import {
     checkOscarActor,
     checkBestPicture,
     calculateReRelease,
+    pickPresenter,
 } from './game/gameEngine';
 import { initialGameState } from './game/gameState';
 import type { GameState } from './game/gameState';
@@ -359,16 +360,6 @@ async function phaseRelease(state: GameState): Promise<void> {
     await pressAnyKey();
 }
 
-/** Pick a random actor not in the cast to serve as a presenter. */
-function pickPresenter(cast: GameState['cast']): string {
-    const castNames = new Set(cast.map(cr => cr.actor.name));
-    let presenter: typeof actors[0] | undefined;
-    do {
-        const idx = Math.trunc(Math.random() * 140) + 1;
-        presenter = actors.find(a => a.id === idx);
-    } while (!presenter || castNames.has(presenter.name));
-    return presenter.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : presenter.name;
-}
 
 async function phaseAwards(state: GameState): Promise<void> {
     clearScreen();
@@ -401,7 +392,7 @@ async function phaseAwards(state: GameState): Promise<void> {
     clearScreen();
     print('Welcome to the annual Academy Awards presentation.');
     printBlank();
-    print(`Here to present the first award is ${pickPresenter(state.cast)}`);
+    print(`Here to present the first award is ${pickPresenter(actors, state.cast, Math.random)}`);
     printBlank();
     print('The winner of the Oscar for Best Actress is...');
     await sleep(1500);
@@ -416,7 +407,7 @@ async function phaseAwards(state: GameState): Promise<void> {
     // ── Best Actor (C64 lines 2370–2381) ─────────────────────────────────────
     await sleep(2500);
     clearScreen();
-    print(`Here to present the next Oscar is ${pickPresenter(state.cast)}`);
+    print(`Here to present the next Oscar is ${pickPresenter(actors, state.cast, Math.random)}`);
     printBlank();
     print('The winner of the Oscar for Best Actor is...');
     await sleep(1500);
@@ -431,7 +422,7 @@ async function phaseAwards(state: GameState): Promise<void> {
     // ── Best Picture (C64 lines 2390–2401) ───────────────────────────────────
     await sleep(2500);
     clearScreen();
-    print(`Here to award the final oscar is ${pickPresenter(state.cast)}`);
+    print(`Here to award the final oscar is ${pickPresenter(actors, state.cast, Math.random)}`);
     printBlank();
     print('The award for Best Picture goes to...');
     await sleep(1500);
