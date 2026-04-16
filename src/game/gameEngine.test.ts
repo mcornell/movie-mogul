@@ -403,6 +403,26 @@ describe('checkBestPicture', () => {
             expect(result.winnerName).not.toBe('BONKERS!');
         }
     });
+
+    it('SLASHER NIGHTS player: random winner is never SLASHER NIGHTS or BONKERS!', () => {
+        const slasher = movies.find(m => m.id === 2)!;
+        const weakCast = makeCastWithStats(slasher, actors, 1);
+        for (let i = 0; i < 50; i++) {
+            const result = checkBestPicture(slasher, weakCast, movies, seqRng(0.99, Math.random()));
+            expect(result.winnerName).not.toBe('SLASHER NIGHTS');
+            expect(result.winnerName).not.toBe('BONKERS!');
+        }
+    });
+
+    it('BONKERS! player: random winner is never SLASHER NIGHTS or BONKERS!', () => {
+        const bonkers = movies.find(m => m.id === 7)!;
+        const weakCast = makeCastWithStats(bonkers, actors, 1);
+        for (let i = 0; i < 50; i++) {
+            const result = checkBestPicture(bonkers, weakCast, movies, seqRng(0.99, Math.random()));
+            expect(result.winnerName).not.toBe('SLASHER NIGHTS');
+            expect(result.winnerName).not.toBe('BONKERS!');
+        }
+    });
 });
 
 // ── calculateReRelease ────────────────────────────────────────────────────────

@@ -93,7 +93,7 @@ Session rows are deleted when the game finishes. A TTL check on read handles aba
 |------|--------|
 | `src/main.ts` | Branch on `import.meta.env.VITE_SCORES_API`: if truthy, run API-driven game loop; `?cheat` disabled |
 | `src/game/highScores.ts` | Add `fetchLeaderboardsFromApi(apiBase)` async function |
-| `package.json` | Add `@cloudflare/workers-types` devDependency |
+| `package.json` | Add `@cloudflare/workers-types`, `esbuild ^0.28.0`, and `wrangler ^4` devDependencies |
 
 ### Unchanged files
 `src/ui/renderer.ts`, `src/data/`, `src/types/`, `src/game/gameEngine.ts`, `src/game/gameState.ts`, `src/game/phaseHelpers.ts`
@@ -204,14 +204,42 @@ The `--remote` flag is required — without it, Wrangler applies to a local simu
 
 ### Step 3 — Update `wrangler.toml`
 
-Set the `database_id` in `wrangler.toml` (already done — commit it on a branch and PR to develop):
+Already done and committed. The full `wrangler.toml` (see the file for the latest):
 
 ```toml
+name = "movie-mogul-game"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-04-07"
+
+[placement]
+mode = "smart"
+
+# Required for Wrangler v4 — must appear in BOTH top-level and env.production
+[vars]
+PAGES_WRANGLER_MAJOR_VERSION = "4"
+
+# Dev / local: dev database
 [[d1_databases]]
 binding = "DB"
-database_name = "movie-mogul-scores"
+database_name = "DB"
+database_id = "d1d06ddc-8bc9-4dda-a9d6-8c1823fc0852"
+
+# Production: production database
+[env.production]
+compatibility_date = "2026-04-07"
+
+[env.production.vars]
+PAGES_WRANGLER_MAJOR_VERSION = "4"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "DB"
 database_id = "cb9da560-b509-4b4e-b872-a75b4ebb335f"
 ```
+
+> **Wrangler v4 gotcha:** `PAGES_WRANGLER_MAJOR_VERSION = "4"` must be set in **both** `[vars]` and `[env.production.vars]` — it does not inherit from the top-level section.
+>
+> **esbuild gotcha:** Wrangler v4 bundles its own esbuild, but the Cloudflare Pages build image cannot access it. Add `"esbuild": "^0.28.0"` explicitly to `devDependencies` in `package.json` so the CI environment has a resolvable copy, or Pages Function builds will fail.
 
 ### Step 4 — Create the Cloudflare Pages project
 

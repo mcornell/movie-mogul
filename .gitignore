@@ -1,38 +1,19 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-nbproject/private/
-build/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-
 ### Node ###
 node_modules/
 
-### Local config ###
-.env.local
+### Build output ###
+dist/
 
-### Test stuff ###
+### Wrangler ###
+.wrangler/
+
+### Test output ###
 coverage/
 test-results/
 playwright-report/
+playwright-report-api/
 .last-run.json
 .features-gen/
 
+### Local config ###
+.env.local
