@@ -8,11 +8,13 @@ Feature: Help Screen
     When I press "h"
     Then the output contains "MOVIE MOGUL"
 
-  Scenario: Help shows Scripts section
+  Scenario: Help shows Script section on page 2
     When I press "h"
-    Then the output contains "SCRIPTS"
+    And I press any key
+    Then the output contains "SCRIPT"
 
   Scenario: Help shows multiple pages navigable by any key
     When I press "h"
+    And I press any key
     And I press any key
     Then the output contains "CASTING"

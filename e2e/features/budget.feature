@@ -10,7 +10,7 @@ Feature: Budget Phase
 
   Scenario: Budget prompt shows salary and production cost input
     Then the output contains "How much do you want to spend on production?"
-    And the output contains "enter amount in thousands"
+    And the prompt asks "enter amount in thousands"
 
   Scenario: Budget below minimum shows validation error
     When I enter "0"
@@ -20,6 +20,6 @@ Feature: Budget Phase
     When I enter "99999"
     Then the output contains "Please enter a value between"
 
-  Scenario: Valid budget entry proceeds to overrun and total cost
-    When I enter "10000"
-    Then the output contains "Total cost:"
+  Scenario: Valid budget entry advances to the reviews phase
+    When I enter a budget of 10000
+    Then the output contains "The reviews are in"

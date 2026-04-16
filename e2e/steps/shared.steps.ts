@@ -52,6 +52,19 @@ Given('I drive through the release', async ({ releaseScreen }) => {
     await releaseScreen.drive();
 });
 
+When('I drive through the weekly box office run', async ({ page }) => {
+    // Drives through all weekly screens until "pulled from theaters" is visible,
+    // but does NOT press the final Space — so the text stays on screen for assertions.
+    const deadline = Date.now() + 90_000;
+    while (Date.now() < deadline) {
+        const text = await page.locator('#output').textContent() ?? '';
+        if (text.includes('pulled from theaters')) return;
+        if (text.includes('Press any key')) await page.keyboard.press('Space');
+        await page.waitForTimeout(400);
+    }
+    throw new Error('Timed out waiting for "pulled from theaters"');
+});
+
 When('I attend the awards ceremony', async ({ page }) => {
     // Press Space to accept the invitation, then wait for the re-release screen
     // (ceremony is auto-timed — no keypresses between the three awards)

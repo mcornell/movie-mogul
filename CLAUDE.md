@@ -31,7 +31,7 @@ Every feature increment starts from a failing **Playwright** (browser) scenario 
 ## Commands
 
 ```bash
-npm run dev      # start Vite dev server
+npm run dev      # start Vite dev server (standalone, port 3000)
 npm run build    # TypeScript compile + Vite build (standalone, no API)
 npm run build:global  # build with VITE_SCORES_API=1 (enables Cloudflare leaderboard)
 npm run deploy        # build:global + wrangler pages deploy to Cloudflare
@@ -39,8 +39,17 @@ npm run test     # run Vitest (watch mode)
 npx vitest run   # run tests once (CI-style)
 npx vitest run src/some/file.test.ts  # run a single test file
 npm run coverage      # vitest with v8 coverage report
-npm run test:e2e      # Playwright BDD E2E tests (installs browsers + runs bddgen first)
-npm run test:e2e:headed  # same, with visible browser
+
+# E2E tests — three modes:
+npm run test:e2e          # standalone suite (all non-api features, 4 browsers, port 3000)
+npm run test:e2e:api      # API suite (api-*.feature, Chrome only; builds then serves via wrangler pages dev on port 3001)
+npm run test:e2e:all      # both suites sequentially
+npm run test:e2e:headed   # standalone suite with visible browser
+
+# Run either suite against a deployed build (Cloudflare preview or production):
+BASE_URL=https://your-site.pages.dev npm run test:e2e
+BASE_URL=https://your-site.pages.dev npm run test:e2e:api
+BASE_URL=https://your-site.pages.dev npm run test:e2e:all
 ```
 
 ## Project Goal
@@ -101,9 +110,12 @@ The game is plain TypeScript (no framework) rendered into a terminal-style `<div
 - `functions/api/scores.ts` — Cloudflare Pages Function (GET/OPTIONS); reads D1 database for global high scores across 4 categories
 
 ### E2E tests (`e2e/`)
-- `e2e/features/` — Cucumber/Gherkin `.feature` files (full-game, casting, movie-selection, title, api-game)
-- `e2e/steps/` + `e2e/pages/` — step definitions and page objects
-- **Note**: `bddgen` must run before `playwright test` to generate test files from features (done automatically by `npm run test:e2e`)
+- `e2e/features/` — Cucumber/Gherkin `.feature` files, one per game phase: `title`, `movie-selection`, `casting`, `budget`, `reviews`, `release`, `awards`, `high-scores`, `help`, `cheat`, `full-game`, plus `api-game` for the API-mode build
+- `e2e/steps/` — step definitions; `shared.steps.ts` covers all cross-phase navigation Given steps
+- `e2e/pages/` — page objects (one per phase); `TerminalScreen` is the base class
+- Two Playwright configs: `playwright.config.ts` (standalone, all non-api features, 4 browsers) and `playwright.api.config.ts` (API build, api-*.feature only, Chrome)
+- Both configs support `BASE_URL` env var to run against a deployed build instead of starting a local server
+- `bddgen` must run before `playwright test`; the npm scripts do this automatically
 
 ### Entry point
 - `src/main.ts` — full game loop across all 8 phases; supports `?seed=N` URL param for deterministic RNG (used in E2E tests) and `?cheat` param to reveal actor stats
@@ -115,6 +127,8 @@ Two build targets: standalone (localStorage scores only) and global (Cloudflare 
 - `schema.sql` — D1 table schema for global leaderboard
 - `scripts/reset-db.sh` — reset the D1 DB to a clean state (uses `--command` flag, not `--file`)
 - Build with `VITE_SCORES_API=1` (`npm run build:global`) to enable the API client; plain `npm run build` gives the standalone version
+
+Local API development: `npx wrangler pages dev dist --port 3001` after `npm run build:global`. This serves the built frontend and the Pages Functions together with the D1 preview binding active. `npm run test:e2e:api` does this automatically before running tests.
 
 ## Game Phases (from BASIC source)
 
