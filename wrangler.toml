@@ -15,7 +15,7 @@ binding = "DB"
 database_name = "DB"
 
 [env.production]
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-04-07"
 
 [env.production.vars]
 PAGES_WRANGLER_MAJOR_VERSION = "4"
