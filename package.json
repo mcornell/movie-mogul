@@ -15,7 +15,7 @@
         "test:e2e:all": "npm run test:e2e && npm run test:e2e:api",
         "test:e2e:ui": "npm run install:browsers && bddgen && playwright test --ui",
         "test:e2e:headed": "npm run install:browsers && bddgen && playwright test --headed",
-        "deploy": "./scripts/deploy.sh"
+        "deploy:local": "./scripts/deploy.sh"
     },
     "devDependencies": {
         "@cloudflare/workers-types": "^4.20260414.1",

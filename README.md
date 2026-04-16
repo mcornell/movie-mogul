@@ -143,7 +143,7 @@ There are two deployment targets:
 ```bash
 # Standalone build → mcornell.dev (Astro site, rsync)
 # Set DEPLOY_TARGET in .env.local, or you'll be prompted
-npm run deploy
+npm run deploy:local
 
 # API-enabled build → Cloudflare Pages + D1 global leaderboard
 npm run deploy:global
