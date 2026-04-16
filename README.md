@@ -138,11 +138,18 @@ e2e/
 
 ## Deployment
 
+There are two deployment targets:
+
 ```bash
-npm run deploy   # build:global → wrangler pages deploy to Cloudflare
+# Standalone build → mcornell.dev (Astro site, rsync)
+# Set DEPLOY_TARGET in .env.local, or you'll be prompted
+npm run deploy
+
+# API-enabled build → Cloudflare Pages + D1 global leaderboard
+npm run deploy:global
 ```
 
-Requires `wrangler` authenticated with Cloudflare. The `wrangler.toml` configures two D1 bindings: preview (local dev + CI) and production.
+`deploy:global` requires `wrangler` authenticated with Cloudflare. The `wrangler.toml` configures two D1 bindings: preview (local dev + CI) and production.
 
 To reset the D1 database to blank placeholder entries:
 ```bash

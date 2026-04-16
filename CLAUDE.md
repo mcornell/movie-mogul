@@ -34,7 +34,8 @@ Every feature increment starts from a failing **Playwright** (browser) scenario 
 npm run dev      # start Vite dev server (standalone, port 3000)
 npm run build    # TypeScript compile + Vite build (standalone, no API)
 npm run build:global  # build with VITE_SCORES_API=1 (enables Cloudflare leaderboard)
-npm run deploy        # build:global + wrangler pages deploy to Cloudflare
+npm run deploy        # standalone build → rsync to mcornell.dev (Astro site); set DEPLOY_TARGET in .env.local
+npm run deploy:global # build:global + wrangler pages deploy to Cloudflare
 npm run test     # run Vitest (watch mode)
 npx vitest run   # run tests once (CI-style)
 npx vitest run src/some/file.test.ts  # run a single test file
