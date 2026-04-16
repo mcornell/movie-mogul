@@ -45,13 +45,11 @@ jobs:
 
       - name: Deploy to Cloudflare Pages (preview)
         id: deploy
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: movie-mogul-game
-          directory: dist
-          # No branch: → treated as a preview deployment, not production
+          command: pages deploy dist --project-name movie-mogul-game
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
@@ -59,13 +57,13 @@ jobs:
       - name: Run standalone E2E against preview
         run: npm run test:e2e
         env:
-          BASE_URL: ${{ steps.deploy.outputs.url }}
+          BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
           CI: 'true'
 
       - name: Run API E2E against preview
         run: npm run test:e2e:api
         env:
-          BASE_URL: ${{ steps.deploy.outputs.url }}
+          BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
           CI: 'true'
 
       - name: Upload Playwright report
@@ -99,10 +97,8 @@ jobs:
       - run: npm run build:global
 
       - name: Deploy to Cloudflare Pages (production)
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: movie-mogul-game
-          directory: dist
-          branch: main
+          command: pages deploy dist --project-name movie-mogul-game --branch main
