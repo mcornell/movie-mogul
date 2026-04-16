@@ -131,6 +131,8 @@ export function simulateRelease(mq: number, rng: () => number): ReleaseResult {
     // Choose decay rate at start of run (BASIC line 2110: xx=int(rnd(1)*3)+1)
     const decayChoice = int(rng() * 3) + 1; // 1, 2, or 3
     const decayRates: Record<number, number> = { 1: 0.02, 2: 0.07, 3: 0.15 };
+    // The ?? 0.07 fallback is unreachable: decayChoice is always 1, 2, or 3.
+    // It is kept as defensive code mirroring the C64 BASIC's implicit default.
     const yy = decayRates[decayChoice] ?? 0.07;
 
     // Initial weekly gross (BASIC lines 2090–2100)
@@ -283,6 +285,22 @@ export function checkBestPicture(
     const eligible = allMovies.filter(m => m.id !== movie.id && m.id !== 2 && m.id !== 7);
     const winner = eligible[int(rng() * eligible.length)];
     return { winnerName: winner.title, winnerMovie: winner.title, isPlayerWin: false, weight: 0 };
+}
+
+// ── Phase 6: Presenter selection ─────────────────────────────────────────────
+
+/**
+ * Pick a random actor not in the cast to serve as an awards presenter.
+ * Mirrors BASIC lines 2300–2401 (presenter selection before each Oscar reveal).
+ */
+export function pickPresenter(allActors: Actor[], cast: CastResult[], rng: () => number): string {
+    const castNames = new Set(cast.map(cr => cr.actor.name));
+    let presenter: Actor | undefined;
+    do {
+        const idx = int(rng() * 140) + 1;
+        presenter = allActors.find(a => a.id === idx);
+    } while (!presenter || castNames.has(presenter.name));
+    return presenter.name;
 }
 
 // ── Phase 6: Re-release ───────────────────────────────────────────────────────

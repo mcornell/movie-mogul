@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
 
 const testDir = defineBddConfig({
-    features: 'e2e/features/**/*.feature',
+    features: ['e2e/features/**/*.feature', '!e2e/features/api-*.feature'],
     // fixtures.ts is included first so all step files can import Given/When/Then from it
     steps: ['e2e/fixtures.ts', 'e2e/steps/**/*.ts'],
 });

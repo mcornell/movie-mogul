@@ -10,6 +10,7 @@ import {
     checkBestPicture,
     calculateReRelease,
     isMovieEligibleForOscar,
+    pickPresenter,
 } from './gameEngine';
 import { movies } from '../data/movies';
 import { actors } from '../data/actors';
@@ -459,6 +460,44 @@ describe('calculateReRelease', () => {
     it('uses the high-gross tier when totalGross > 80000', () => {
         const bonus = calculateReRelease(100000, 0.4, seqRng(0.5));
         expect(bonus).toBeGreaterThan(0);
+    });
+});
+
+// ── pickPresenter ─────────────────────────────────────────────────────────────
+
+describe('pickPresenter', () => {
+    it('never returns a cast member', () => {
+        const movie = movies[0];
+        const cast = makeCast(movie, actors);
+        const castNames = new Set(cast.map(cr => cr.actor.name));
+        for (let i = 0; i < 20; i++) {
+            expect(castNames.has(pickPresenter(actors, cast, Math.random))).toBe(false);
+        }
+    });
+
+    it('returns the actor name as stored in the data', () => {
+        // rng=0 → idx = int(0 * 140) + 1 = 1 → actor id 1
+        const actor1 = actors.find(a => a.id === 1)!;
+        expect(pickPresenter(actors, [], seqRng(0))).toBe(actor1.name);
+    });
+
+    it('re-rolls when the first pick is a cast member', () => {
+        const movie = movies[0];
+        const cast = makeCast(movie, actors);
+        // Build an rng that returns the first cast member's id slot, then a safe actor
+        const castActor = cast[0].actor;
+        const safeActor = actors.find(a => !cast.some(cr => cr.actor.id === a.id))!;
+        // rng values that land on specific actor ids: int(rng * 140) + 1 = id → rng = (id-1)/140
+        // Use Math.floor arithmetic to avoid float precision issues
+        const castRng  = (castActor.id  - 1) / 140 + 0.0001;
+        const safeRng  = (safeActor.id  - 1) / 140 + 0.0001;
+        const name = pickPresenter(actors, cast, seqRng(castRng, safeRng));
+        expect(name).toBe(safeActor.name);
+    });
+
+    it('works with an empty cast (any actor is valid)', () => {
+        const name = pickPresenter(actors, [], Math.random);
+        expect(actors.some(a => a.name === name)).toBe(true);
     });
 });
 

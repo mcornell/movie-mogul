@@ -22,7 +22,7 @@ Feature: Casting Phase
   Scenario: Casting the same actor twice shows an invalid selection error
     When I cast the first available actor for the current role
     And I try to cast that same actor again
-    Then the output contains "Invalid selection."
+    Then the output contains "already cast in another role."
 
   Scenario: Casting all three roles shows total salary
     When I cast all roles

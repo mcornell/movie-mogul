@@ -32,10 +32,15 @@ Every feature increment starts from a failing **Playwright** (browser) scenario 
 
 ```bash
 npm run dev      # start Vite dev server
-npm run build    # TypeScript compile + Vite build
+npm run build    # TypeScript compile + Vite build (standalone, no API)
+npm run build:global  # build with VITE_SCORES_API=1 (enables Cloudflare leaderboard)
+npm run deploy        # build:global + wrangler pages deploy to Cloudflare
 npm run test     # run Vitest (watch mode)
 npx vitest run   # run tests once (CI-style)
 npx vitest run src/some/file.test.ts  # run a single test file
+npm run coverage      # vitest with v8 coverage report
+npm run test:e2e      # Playwright BDD E2E tests (installs browsers + runs bddgen first)
+npm run test:e2e:headed  # same, with visible browser
 ```
 
 ## Project Goal
@@ -89,8 +94,27 @@ The game is plain TypeScript (no framework) rendered into a terminal-style `<div
 - `src/ui/renderer.ts` — terminal-style rendering: `print()`, `clearScreen()`, `readLine()`, `waitForKey()`, `pressAnyKey()`; includes mobile virtual keyboard and touch input support
 - `src/ui/format.ts` — money formatting helpers
 
+### API layer (`src/api/`)
+- `src/api/client.ts` — typed Cloudflare Worker API client; `apiPost<T>()` for all Worker calls; `toHighScoreData()` converts snake_case wire format to `HighScoreData`
+
+### Cloudflare backend (`functions/api/`)
+- `functions/api/scores.ts` — Cloudflare Pages Function (GET/OPTIONS); reads D1 database for global high scores across 4 categories
+
+### E2E tests (`e2e/`)
+- `e2e/features/` — Cucumber/Gherkin `.feature` files (full-game, casting, movie-selection, title, api-game)
+- `e2e/steps/` + `e2e/pages/` — step definitions and page objects
+- **Note**: `bddgen` must run before `playwright test` to generate test files from features (done automatically by `npm run test:e2e`)
+
 ### Entry point
 - `src/main.ts` — full game loop across all 8 phases; supports `?seed=N` URL param for deterministic RNG (used in E2E tests) and `?cheat` param to reveal actor stats
+
+## Deployment
+
+Two build targets: standalone (localStorage scores only) and global (Cloudflare Pages + D1 database).
+- `wrangler.toml` — Pages project config with two D1 bindings (preview DB and production DB)
+- `schema.sql` — D1 table schema for global leaderboard
+- `scripts/reset-db.sh` — reset the D1 DB to a clean state (uses `--command` flag, not `--file`)
+- Build with `VITE_SCORES_API=1` (`npm run build:global`) to enable the API client; plain `npm run build` gives the standalone version
 
 ## Game Phases (from BASIC source)
 
