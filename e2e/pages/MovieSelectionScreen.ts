@@ -9,6 +9,9 @@ export class MovieSelectionScreen extends TerminalScreen {
         await expect(this.page.locator('#output')).toContainText('MOVIE MOGUL');
         await expect(this.page.locator('#output')).toContainText('P)lay');
         await this.page.keyboard.press('p');
+        // Wait until the movie-selection readLine is active before returning,
+        // so callers can immediately type a choice without a race.
+        await expect(this.page.locator('#prompt')).toContainText('Which do you want to produce', { timeout: 10_000 });
     }
 
     /** Enter a movie number (1–3) to select it. */
@@ -26,5 +29,8 @@ export class MovieSelectionScreen extends TerminalScreen {
         await expect(this.page.locator('#output')).toContainText('Press any key to continue');
         await this.page.keyboard.press('Space');
         await expect(this.page.locator('#output')).toContainText('Casting Call for');
+        // Wait until the first casting readLine is active before returning,
+        // so callers can immediately type an actor number without a race.
+        await expect(this.page.locator('#prompt')).toContainText('cast as', { timeout: 15_000 });
     }
 }
