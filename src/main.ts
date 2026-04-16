@@ -713,6 +713,22 @@ async function runGame(): Promise<void> {
 // ── Single API game ───────────────────────────────────────────────────────────
 
 async function playOneGameApi(): Promise<boolean> {
+    try {
+        return await playOneGameApiInner();
+    } catch (err) {
+        clearScreen();
+        printBlank();
+        print('A server error occurred.', 'red', 'center');
+        print(err instanceof Error ? err.message : String(err), 'dim', 'center');
+        printBlank();
+        print('Your session has ended. Please try again.', 'dim', 'center');
+        printBlank();
+        await pressAnyKey();
+        return true; // return to the play-again loop so the player can start fresh
+    }
+}
+
+async function playOneGameApiInner(): Promise<boolean> {
     // ── Phase 1: Movie Selection ──────────────────────────────────────────────
     clearScreen();
     print('Please wait...', 'dim');
