@@ -22,6 +22,7 @@ export default defineConfig({
     testDir,
     timeout: 240_000,       // "completing the game" drives the full post-budget path (~2-3min)
     expect:  { timeout: 30_000 },
+    workers: 4,
     forbidOnly: !!process.env.CI,
     reporter: [
         ['list'],
