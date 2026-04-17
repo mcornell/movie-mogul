@@ -723,7 +723,9 @@ async function playOneGameApiInner(): Promise<boolean> {
     // ── Phase 1: Movie Selection ──────────────────────────────────────────────
     clearScreen();
     print('Please wait...', 'dim');
-    const { sessionId, movieChoices } = await apiPost<StartResponse>('/api/game/start');
+    const { sessionId, movieChoices } = await apiPost<StartResponse>('/api/game/start',
+        seedParam !== null ? { seed: parseInt(seedParam, 10) } : {},
+    );
 
     clearScreen();
     for (let i = 0; i < 3; i++) {

@@ -20,7 +20,13 @@ export class HighScoresScreen extends TerminalScreen {
             const text   = await this.page.locator('#output').textContent() ?? '';
             const prompt = await this.page.locator('#prompt').textContent() ?? '';
 
-            if (text.includes('P)lay Again')) return;
+            if (text.includes('P)lay Again')) {
+                // The navigation row is printed synchronously just before
+                // waitForKey() is called. Give the JS event loop one tick to
+                // reach that await so keypresses aren't lost.
+                await this.page.waitForTimeout(100);
+                return;
+            }
 
             if (prompt.includes('initials')) {
                 await this.page.locator('#text-input').fill(initials);

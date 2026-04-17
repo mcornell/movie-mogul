@@ -8,6 +8,7 @@ mode = "smart"
 
 [vars]
 PAGES_WRANGLER_MAJOR_VERSION = "4"
+ALLOW_SEED = "true"
 
 [[d1_databases]]
 database_id = "d1d06ddc-8bc9-4dda-a9d6-8c1823fc0852"

@@ -70,15 +70,22 @@ export interface FinishApiResponse {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** POST to a Worker API endpoint; throws on non-2xx. */
+/** POST to a Worker API endpoint; retries up to 3 times on 5xx, throws on 4xx or exhaustion. */
 export async function apiPost<T>(path: string, body: object = {}): Promise<T> {
-    const res = await fetch(path, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`API error ${res.status}`);
-    return res.json() as Promise<T>;
+    const MAX_ATTEMPTS = 3;
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+        const res = await fetch(path, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+        });
+        if (res.ok) return res.json() as Promise<T>;
+        lastStatus = res.status;
+        if (res.status < 500) break; // 4xx — no point retrying
+    }
+    throw new Error(`API error ${lastStatus}`);
 }
 
 /** Convert the Worker's snake_case leaderboard rows to HighScoreData. */

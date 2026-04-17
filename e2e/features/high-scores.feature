@@ -17,11 +17,13 @@ Feature: High Scores Phase
     When I press "q"
     Then the output contains "Thanks for playing Movie Mogul!"
 
+  @standalone-only
   Scenario: R key prompts to confirm score reset
     When I press "r"
     Then the output contains "Reset all high scores?"
     And the output contains "Y)es"
 
+  @standalone-only
   Scenario: Declining reset keeps the high scores
     When I press "r"
     And I press "n"

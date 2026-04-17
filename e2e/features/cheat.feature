@@ -1,3 +1,4 @@
+@standalone-only
 Feature: Cheat Mode
 
   Background:
