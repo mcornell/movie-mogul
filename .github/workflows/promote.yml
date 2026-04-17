@@ -28,7 +28,7 @@ jobs:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           # Keep in sync with wrangler in package.json
-          wranglerVersion: '4.82.2'
+          wranglerVersion: '4.83.0'
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name movie-mogul-game --branch main
