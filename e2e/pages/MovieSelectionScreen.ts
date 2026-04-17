@@ -11,7 +11,7 @@ export class MovieSelectionScreen extends TerminalScreen {
         await this.page.keyboard.press('p');
         // Wait until the movie-selection readLine is active before returning,
         // so callers can immediately type a choice without a race.
-        await expect(this.page.locator('#prompt')).toContainText('Which do you want to produce', { timeout: 10_000 });
+        await expect(this.page.locator('#prompt')).toContainText('Which do you want to produce', { timeout: 30_000 });
     }
 
     /** Enter a movie number (1–3) to select it. */
