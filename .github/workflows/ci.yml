@@ -79,13 +79,12 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name movie-mogul-game
 
-      - name: Cache Playwright browsers
+      - name: Restore Playwright browsers cache
         id: playwright-cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          save-always: true
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -94,6 +93,13 @@ jobs:
       - name: Install Playwright system dependencies
         run: npx playwright install-deps chromium
         if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Save Playwright browsers cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
 
       - name: Run API E2E against preview
         run: npx bddgen -c playwright.api.config.ts && npx playwright test --config playwright.api.config.ts
