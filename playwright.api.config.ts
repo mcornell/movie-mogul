@@ -1,36 +1,38 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
 
-// When BASE_URL is set, tests run against a deployed (or externally started) server.
-// The local wrangler server is skipped entirely — set this to point at Cloudflare preview
-// or production: BASE_URL=https://your-site.pages.dev npm run test:e2e:api
+// CI config: runs the full game suite against the Cloudflare Pages deployment.
+// Set BASE_URL to point at any deployed build:
+//   BASE_URL=https://your-site.pages.dev npm run test:e2e:api
 //
-// Locally, this config builds the API-enabled bundle then serves it via wrangler pages dev,
-// which runs both the static frontend and the Cloudflare Pages Functions (Worker + D1).
-// The api-game.feature uses page.route() mocks so it works against any server.
+// Locally, this config builds the API-enabled bundle then serves it via
+// wrangler pages dev, which runs both the static frontend and the Cloudflare
+// Pages Functions (Worker + D1 preview DB).
 const BASE_URL = process.env.BASE_URL;
 const LOCAL_URL = 'http://localhost:3001';
 
 const testDir = defineBddConfig({
-    features: 'e2e/features/api-*.feature',
-    steps:    ['e2e/fixtures.ts', 'e2e/steps/shared.steps.ts', 'e2e/steps/casting.steps.ts', 'e2e/steps/api-game.steps.ts'],
+    features: 'e2e/features/**/*.feature',
+    steps:    ['e2e/fixtures.ts', 'e2e/steps/**/*.ts'],
+    tags:     'not @standalone-only',
     outputDir: '.features-gen-api',
 });
 
 export default defineConfig({
     testDir,
-    timeout: 60_000,
-    expect:  { timeout: 15_000 },
+    timeout: 120_000,       // full game with award sleeps can take ~30s
+    expect:  { timeout: 30_000 },
     forbidOnly: !!process.env.CI,
     reporter: [
         ['list'],
-        ['html', { outputFolder: 'playwright-report-api', open: 'never' }],
-        ['junit', { outputFile: 'test-results/junit-api.xml' }],
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+        ['junit', { outputFile: 'test-results/junit.xml' }],
     ],
     use: {
         baseURL: BASE_URL ?? LOCAL_URL,
         headless: true,
         screenshot: 'only-on-failure',
+        video: 'off',
     },
     webServer: BASE_URL ? undefined : {
         // Build the API-enabled bundle, then serve with wrangler pages dev so the
@@ -41,6 +43,6 @@ export default defineConfig({
         timeout: 120_000,   // build + wrangler startup is slower than a plain dev server
     },
     projects: [
-        { name: 'api-chrome', use: { ...devices['Desktop Chrome'] } },
+        { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
     ],
 });
