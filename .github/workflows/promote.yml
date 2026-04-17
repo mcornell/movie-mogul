@@ -1,0 +1,32 @@
+name: Promote to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  promote:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      actions: read
+    steps:
+      - name: Download dist from latest develop CI
+        uses: dawidd6/action-download-artifact@v20
+        with:
+          workflow: ci.yml
+          branch: develop
+          name: dist
+          path: dist/
+          workflow_conclusion: success
+
+      - name: Deploy to Cloudflare Pages (production)
+        uses: cloudflare/wrangler-action@v3
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name movie-mogul-game --branch main
