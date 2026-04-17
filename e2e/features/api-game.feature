@@ -32,6 +32,7 @@ Feature: API-driven game (global deployment)
     When I enter "1"
     And I press any key
     Then the output contains "Casting Call"
+    And the prompt asks "cast as"
     When I enter "1"
     And I enter "2"
     And I enter "9"
@@ -43,6 +44,7 @@ Feature: API-driven game (global deployment)
     When I enter "1"
     And I press any key
     Then the output contains "Casting Call"
+    And the prompt asks "cast as"
     When I enter "1"
     And I enter "2"
     And I enter "9"
@@ -59,6 +61,7 @@ Feature: API-driven game (global deployment)
     When I enter "1"
     And I press any key
     Then the output contains "Casting Call"
+    And the prompt asks "cast as"
     When I enter "1"
     And I enter "2"
     And I enter "9"
