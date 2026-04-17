@@ -14,9 +14,8 @@ Feature: API-driven game (global deployment)
     When I enter "1"
     And I press any key
     Then the prompt asks "cast as"
-    When I cast all roles
-    And I press any key
-    And I enter "15000"
+    When I cast all roles and advance past casting
+    And I enter a budget of 15000
     When I drive through prompts until "P)lay Again"
     Then the output contains "HIGHEST PROFIT"
 
