@@ -13,7 +13,7 @@ const LOCAL_URL = 'http://localhost:3001';
 
 const testDir = defineBddConfig({
     features: 'e2e/features/api-*.feature',
-    steps:    ['e2e/fixtures.ts', 'e2e/steps/shared.steps.ts', 'e2e/steps/api-game.steps.ts'],
+    steps:    ['e2e/fixtures.ts', 'e2e/steps/shared.steps.ts', 'e2e/steps/casting.steps.ts', 'e2e/steps/api-game.steps.ts'],
     outputDir: '.features-gen-api',
 });
 

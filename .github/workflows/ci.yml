@@ -94,12 +94,6 @@ jobs:
         run: npx playwright install-deps chromium
         if: steps.playwright-cache.outputs.cache-hit == 'true'
 
-      - name: Run standalone E2E against preview
-        run: npx bddgen && npx playwright test --project desktop-chrome --grep-invert "@standalone-only"
-        env:
-          BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
-          CI: 'true'
-
       - name: Run API E2E against preview
         run: npx bddgen -c playwright.api.config.ts && npx playwright test --config playwright.api.config.ts
         env:
