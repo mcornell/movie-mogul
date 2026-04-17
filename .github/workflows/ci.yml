@@ -101,6 +101,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
 
+      - name: Warm up Cloudflare Worker
+        run: |
+          curl -sf --retry 5 --retry-delay 3 \
+            -X POST "${{ steps.deploy.outputs.deployment-url }}/api/game/start" \
+            -H "Content-Type: application/json" -d '{}' || true
+
       - name: Run API E2E against preview
         run: npx bddgen -c playwright.api.config.ts && npx playwright test --config playwright.api.config.ts
         env:
