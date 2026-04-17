@@ -20,7 +20,7 @@ const testDir = defineBddConfig({
 
 export default defineConfig({
     testDir,
-    timeout: 120_000,       // full game with award sleeps can take ~30s
+    timeout: 240_000,       // "completing the game" drives the full post-budget path (~2-3min)
     expect:  { timeout: 30_000 },
     forbidOnly: !!process.env.CI,
     reporter: [
