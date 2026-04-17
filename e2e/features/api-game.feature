@@ -1,79 +1,62 @@
 Feature: API-driven game (global deployment)
 
-  # In the global deployment VITE_SCORES_API=1, so:
-  #   - all game logic runs server-side via Cloudflare Workers
-  #   - ?cheat is disabled
-  #   - high scores are fetched from / saved to D1 via the API
+  # Uses the real Cloudflare Worker and D1 — no mocks.
+  # ?seed=42 is forwarded to the Worker (ALLOW_SEED is set in the preview
+  # environment) so movie choices, actors, and game events are deterministic.
 
   Background:
-    Given the API endpoints are mocked
-    And I open the game
+    Given I open the game with seed 42
     And I advance past the title screen
 
-  Scenario: Pressing Play calls the game start API
+  Scenario: Pressing Play shows movie choices from the API
     When I press "p"
-    Then the game called the start API
-    And the output contains "You have been sent three scripts"
+    Then the output contains "You have been sent three scripts"
 
-  Scenario: Movie choices are displayed from the API response
+  Scenario: Three numbered movie choices are displayed
     When I press "p"
-    Then the output contains "SWORD AND SORCERY"
+    Then the output contains "1)"
+    And the output contains "2)"
+    And the output contains "3)"
 
-  Scenario: Choosing a movie calls the movie API and shows the actor pool
+  Scenario: Choosing a movie loads the actor pool from the API
     When I press "p"
     Then the output contains "You have been sent three scripts"
     When I enter "1"
     And I press any key
-    Then the output contains "John Wayne"
+    Then the output contains "PAY"
 
-  Scenario: Casting actors calls the cast API and shows the budget prompt
+  Scenario: Casting all roles shows total salary from the API
     When I press "p"
     Then the output contains "You have been sent three scripts"
     When I enter "1"
     And I press any key
-    Then the output contains "Casting Call"
-    And the prompt asks "cast as"
-    When I enter "1"
-    And I enter "2"
-    And I enter "9"
+    Then the prompt asks "cast as"
+    When I cast all roles
     Then the output contains "Total cost of salaries"
 
-  Scenario: Setting the budget calls the budget API and shows the release results
+  Scenario: Setting the budget triggers the review phase via the API
     When I press "p"
     Then the output contains "You have been sent three scripts"
     When I enter "1"
     And I press any key
-    Then the output contains "Casting Call"
-    And the prompt asks "cast as"
-    When I enter "1"
-    And I enter "2"
-    And I enter "9"
-    Then the output contains "Total cost of salaries"
-    When I press any key
+    Then the prompt asks "cast as"
+    When I cast all roles
+    And I press any key
     And I enter "15000"
-    Then the output contains "came in on budget"
-    When I press any key
     Then the output contains "The reviews are in"
 
-  Scenario: Finishing the game calls the finish API and shows the leaderboard
+  Scenario: Completing the game shows the global leaderboard
     When I press "p"
     Then the output contains "You have been sent three scripts"
     When I enter "1"
     And I press any key
-    Then the output contains "Casting Call"
-    And the prompt asks "cast as"
-    When I enter "1"
-    And I enter "2"
-    And I enter "9"
-    Then the output contains "Total cost of salaries"
-    When I press any key
+    Then the prompt asks "cast as"
+    When I cast all roles
+    And I press any key
     And I enter "15000"
-    Then the output contains "came in on budget"
     When I drive through prompts until "P)lay Again"
-    Then the output contains "No Movie"
+    Then the output contains "HIGHEST PROFIT"
 
-  Scenario: Cheat mode is disabled even with ?cheat in the URL
-    Given I open the game with cheat param
-    And I advance past the title screen
+  Scenario: Cheat mode is disabled in the global build
     When I press "p"
     Then the output does not contain "CHEAT MODE ACTIVE"

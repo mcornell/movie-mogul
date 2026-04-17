@@ -38,6 +38,9 @@ export interface GameState {
     // Phase 6 — awards
     oscarsWon: number;            // count of Oscars won (affects re-release)
     reReleaseGross: number;       // bonus gross from re-release (thousands)
+
+    // Seeded RNG (preview/test only — undefined in production)
+    rngState?: number;            // LCG state carried across API phases
 }
 
 export function initialGameState(): GameState {

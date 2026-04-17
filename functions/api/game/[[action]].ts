@@ -21,6 +21,24 @@ import type { Actor } from '../../../src/types';
 
 interface Env {
     DB: D1Database;
+    ALLOW_SEED?: string;
+}
+
+/**
+ * LCG matching the standalone game's seeded RNG (same constants).
+ * Returns an object whose rng() produces the next value in the sequence
+ * and getState() returns the current internal state for persistence.
+ * Preview-only: production never sets ALLOW_SEED so this is never called there.
+ */
+function makeLcg(s: number): { rng: () => number; getState: () => number } {
+    let state = s >>> 0;
+    return {
+        rng: () => {
+            state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+            return state / 0x100000000;
+        },
+        getState: () => state,
+    };
 }
 
 interface ScoreRow {
@@ -98,10 +116,10 @@ function disambiguateInitials(movieTitle: string, raw3: string, allRows: ScoreRo
 
 // ── Presenter picker ───────────────────────────────────────────────────────────
 
-function pickPresenter(castNames: Set<string>): string {
+function pickPresenter(castNames: Set<string>, rng: () => number = Math.random): string {
     let presenter: Actor | undefined;
     do {
-        const idx = Math.trunc(Math.random() * 140) + 1;
+        const idx = Math.trunc(rng() * 140) + 1;
         presenter = actors.find(a => a.id === idx);
     } while (!presenter || castNames.has(presenter.name));
     return presenter.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : presenter.name;
@@ -109,10 +127,15 @@ function pickPresenter(castNames: Set<string>): string {
 
 // ── Phase handlers ─────────────────────────────────────────────────────────────
 
-async function handleStart(db: D1Database): Promise<Response> {
+async function handleStart(db: D1Database, env: Env, body: { seed?: number }): Promise<Response> {
     const state = initialGameState();
-    state.movieChoices = pickMovieChoices(movies, Math.random);
+
+    const lcg = (env.ALLOW_SEED && typeof body.seed === 'number') ? makeLcg(body.seed) : null;
+    const rng  = lcg ? lcg.rng : Math.random;
+
+    state.movieChoices = pickMovieChoices(movies, rng);
     state.phase = 'movie-selection';
+    if (lcg) state.rngState = lcg.getState();
 
     const sessionId = crypto.randomUUID();
     await saveSession(db, sessionId, 'movie-selection', state);
@@ -130,6 +153,7 @@ async function handleStart(db: D1Database): Promise<Response> {
 
 async function handleMovie(
     db: D1Database,
+    env: Env,
     body: { sessionId?: string; choice?: number },
 ): Promise<Response> {
     const { sessionId, choice } = body;
@@ -138,10 +162,14 @@ async function handleMovie(
     const state = await loadSession(db, sessionId);
     if (!state || state.phase !== 'movie-selection') return err('Invalid session or phase', 404);
 
+    const lcg = (env.ALLOW_SEED && state.rngState !== undefined) ? makeLcg(state.rngState) : null;
+    const rng  = lcg ? lcg.rng : Math.random;
+
     state.selectedMovie = state.movieChoices![choice - 1];
-    state.actorPool  = pickActorPool(actors, Math.random);
-    state.actorPays  = state.actorPool.map(a => calculatePay(a, Math.random));
+    state.actorPool  = pickActorPool(actors, rng);
+    state.actorPays  = state.actorPool.map(a => calculatePay(a, rng));
     state.phase      = 'casting';
+    if (lcg) state.rngState = lcg.getState();
 
     await saveSession(db, sessionId, 'casting', state);
 
@@ -208,6 +236,7 @@ async function handleCast(
 
 async function handleBudget(
     db: D1Database,
+    env: Env,
     body: { sessionId?: string; budget?: number },
 ): Promise<Response> {
     const { sessionId, budget } = body;
@@ -221,9 +250,13 @@ async function handleBudget(
 
     const effectiveBudget = Math.min(budget, movie.budgetIdeal);
 
+    const lcg = (env.ALLOW_SEED && state.rngState !== undefined) ? makeLcg(state.rngState) : null;
+    const rng  = lcg ? lcg.rng : Math.random;
+    const roll = (n: number) => Math.trunc(rng() * n) + 1;
+
     // Production event
     const castNames   = state.cast.map(cr => cr.actor.name);
-    const event       = productionEvent(castNames[0], castNames[1], castNames[2], Math.trunc(Math.random() * 10) + 1);
+    const event       = productionEvent(castNames[0], castNames[1], castNames[2], roll(10));
     let eventCostDelta = 0;
     if (event) {
         state.reviewScore += event.reviewDelta;
@@ -231,7 +264,7 @@ async function handleBudget(
     }
 
     // Budget overrun
-    const { text: overrunText, overrun } = budgetOverrun(budget, Math.trunc(Math.random() * 100));
+    const { text: overrunText, overrun } = budgetOverrun(budget, Math.trunc(rng() * 100));
     const rawBudget = budget + overrun;
     state.totalCost = state.salaryCost + eventCostDelta + rawBudget;
 
@@ -241,14 +274,14 @@ async function handleBudget(
         'Sneak Previews', 'Rex Reed', 'Time Magazine', 'Newsweek', 'LA Times',
     ];
     const reviews = REVIEWERS.map(reviewer => {
-        const { text, scoreDelta } = reviewVerdict(Math.trunc(Math.random() * 10) + 1);
+        const { text, scoreDelta } = reviewVerdict(roll(10));
         state.reviewScore += scoreDelta;
         return { reviewer, text };
     });
 
     // Rating + cast display names
     const RATINGS = ['PG', 'PG-13', 'R'];
-    const rating  = RATINGS[Math.trunc(Math.random() * 3)];
+    const rating  = RATINGS[Math.trunc(rng() * 3)];
     let [vx, vy, vz] = state.cast.map(cr =>
         cr.actor.name === 'Schwarzenegger' ? 'Arnold Schwarzenegger' : cr.actor.name
     );
@@ -258,32 +291,32 @@ async function handleBudget(
     // Quality score + release simulation
     state.productionBudget = effectiveBudget;
     const { mq } = calculateQualityScore(movie, state.cast, state.reviewScore, effectiveBudget);
-    const { weeklyGross, totalGross } = simulateRelease(mq, Math.random);
+    const { weeklyGross, totalGross } = simulateRelease(mq, rng);
     state.weeklyGross = weeklyGross;
     state.totalGross  = totalGross;
 
     // Academy Awards
     let w = 0;
-    const actressResult = checkOscarActress(movie, state.cast, actors, movies, Math.random);
+    const actressResult = checkOscarActress(movie, state.cast, actors, movies, rng);
     if (actressResult.isPlayerWin) { state.oscarsWon++; w += actressResult.weight; }
-    const actorResult   = checkOscarActor(movie, state.cast, actors, movies, Math.random);
+    const actorResult   = checkOscarActor(movie, state.cast, actors, movies, rng);
     if (actorResult.isPlayerWin)   { state.oscarsWon++; w += actorResult.weight; }
-    const pictureResult = checkBestPicture(movie, state.cast, movies, Math.random);
+    const pictureResult = checkBestPicture(movie, state.cast, movies, rng);
     if (pictureResult.isPlayerWin) { state.oscarsWon++; w += pictureResult.weight; }
 
     // Re-release
     let reReleaseGross = 0;
     if (w > 0) {
-        reReleaseGross    = calculateReRelease(state.totalGross, w, Math.random);
+        reReleaseGross    = calculateReRelease(state.totalGross, w, rng);
         state.reReleaseGross = reReleaseGross;
         state.totalGross  += reReleaseGross;
     }
 
-    // Presenters (picked after all award RNG is consumed)
+    // Presenters — use seeded rng if available, otherwise Math.random
     const castNameSet = new Set(castNames);
-    const presenter1  = pickPresenter(castNameSet);
-    const presenter2  = pickPresenter(castNameSet);
-    const presenter3  = pickPresenter(castNameSet);
+    const presenter1  = pickPresenter(castNameSet, rng);
+    const presenter2  = pickPresenter(castNameSet, rng);
+    const presenter3  = pickPresenter(castNameSet, rng);
 
     // Leaderboard qualification check
     const gameScores = calculateGameScores(state.totalGross, state.totalCost);
@@ -388,13 +421,14 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     const action = url.pathname.split('/').pop();
     const body   = await ctx.request.json().catch(() => ({})) as Record<string, unknown>;
     const db     = ctx.env.DB;
+    const env    = ctx.env;
 
     switch (action) {
-        case 'start':  return handleStart(db);
-        case 'movie':  return handleMovie(db,  body as { sessionId?: string; choice?: number });
-        case 'cast':   return handleCast(db,   body as { sessionId?: string; actorIndices?: number[] });
-        case 'budget': return handleBudget(db, body as { sessionId?: string; budget?: number });
-        case 'finish': return handleFinish(db, body as { sessionId?: string; initials?: string });
+        case 'start':  return handleStart(db, env, body as { seed?: number });
+        case 'movie':  return handleMovie(db, env, body as { sessionId?: string; choice?: number });
+        case 'cast':   return handleCast(db,        body as { sessionId?: string; actorIndices?: number[] });
+        case 'budget': return handleBudget(db, env, body as { sessionId?: string; budget?: number });
+        case 'finish': return handleFinish(db,      body as { sessionId?: string; initials?: string });
         default:       return json({ error: 'Not found' }, 404);
     }
 };
