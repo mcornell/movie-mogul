@@ -23,8 +23,9 @@ jobs:
       - run: npx vitest run
 
   # ── 2. Global build → deploy to Cloudflare preview → E2E ─────────────────────
-  #    Builds the API-enabled version, deploys to a Cloudflare Pages preview URL,
-  #    then runs the full E2E suite (standalone + api features) against that URL.
+  #    Builds the API-enabled version, uploads the dist/ as a workflow artifact,
+  #    deploys to a Cloudflare Pages preview URL, and runs the full E2E suite
+  #    against that URL. The same dist/ is later promoted to production.
   e2e:
     name: E2E (Cloudflare preview)
     runs-on: ubuntu-latest
@@ -42,6 +43,13 @@ jobs:
 
       - run: npm ci
       - run: npm run build:global
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
 
       - name: Deploy to Cloudflare Pages (preview)
         id: deploy
@@ -77,8 +85,8 @@ jobs:
           retention-days: 7
 
   # ── 3. Promote to production ─────────────────────────────────────────────────
-  #    Runs only when a PR is merged into main.
-  #    Rebuilds from the merged commit and deploys to the production alias.
+  #    Runs only on merge to main. Downloads the exact dist/ that was tested
+  #    (no rebuild) and deploys it to the production alias on Cloudflare Pages.
   promote-to-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -88,15 +96,11 @@ jobs:
       contents: read
       deployments: write
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v6
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-
-      - run: npm ci
-      - run: npm run build:global
+          name: dist
+          path: dist/
 
       - name: Deploy to Cloudflare Pages (production)
         uses: cloudflare/wrangler-action@v3
